@@ -4378,6 +4378,49 @@ button {
   color: var(--daema-color-action-primary);
 }
 
+.customer-unsupported-floating-notice {
+  position: fixed;
+  z-index: 90;
+  bottom: calc(
+    var(--daema-component-navigation-tabbar-height) +
+      max(
+        var(--daema-component-navigation-tabbar-bottom-offset),
+        env(safe-area-inset-bottom, 0px)
+      ) +
+      12px
+  );
+  left: 50%;
+  display: grid;
+  width: min(calc(100vw - 56px), calc(var(--daema-layout-mobile-max-width) - 68px));
+  min-height: 48px;
+  place-items: center;
+  padding: 12px 18px;
+  border: 1px solid rgb(15 23 42 / 0.08);
+  border-radius: 999px;
+  background: rgb(15 23 42 / 0.94);
+  box-shadow: 0 18px 48px rgb(15 23 42 / 0.18);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 760;
+  line-height: 1.35;
+  pointer-events: none;
+  text-align: center;
+  transform: translateX(-50%);
+  animation: customer-unsupported-floating-notice-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes customer-unsupported-floating-notice-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

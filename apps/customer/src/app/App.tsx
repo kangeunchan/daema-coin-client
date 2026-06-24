@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { navigationTabs } from "../entities/customer-home";
 import type { NavigationTab } from "../entities/customer-home";
@@ -55,12 +55,28 @@ export function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => hasStoredCustomerSession());
   const [isAuthChecking, setIsAuthChecking] = useState(() => isCustomerApiEnabled());
   const [loginStep, setLoginStep] = useState<CustomerLoginStep>("github");
+  const [unsupportedNoticeKey, setUnsupportedNoticeKey] = useState(0);
+  const [isUnsupportedNoticeVisible, setIsUnsupportedNoticeVisible] = useState(false);
   const [activePageId, setActivePageId] = useState<CustomerPageId>(() =>
     getPageIdFromPathname(window.location.pathname),
   );
   const [activePointTabId, setActivePointTabId] = useState<CustomerPointTabId>(() =>
     getPointTabIdFromPathname(window.location.pathname),
   );
+  const unsupportedNoticeTimerRef = useRef<number | undefined>(undefined);
+
+  const showUnsupportedNotice = () => {
+    if (unsupportedNoticeTimerRef.current) {
+      window.clearTimeout(unsupportedNoticeTimerRef.current);
+    }
+
+    setUnsupportedNoticeKey((key) => key + 1);
+    setIsUnsupportedNoticeVisible(true);
+
+    unsupportedNoticeTimerRef.current = window.setTimeout(() => {
+      setIsUnsupportedNoticeVisible(false);
+    }, 1800);
+  };
 
   useEffect(() => {
     const handlePopState = () => {
@@ -77,6 +93,15 @@ export function App() {
       window.removeEventListener("popstate", handlePopState);
     };
   }, []);
+
+  useEffect(
+    () => () => {
+      if (unsupportedNoticeTimerRef.current) {
+        window.clearTimeout(unsupportedNoticeTimerRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (isAuthChecking || isAuthenticated || pathname === "/login") {
@@ -164,6 +189,11 @@ export function App() {
   }, [isAuthenticated, pathname]);
 
   const handleTabChange = (tab: NavigationTab) => {
+    if (tab.id === "map") {
+      showUnsupportedNotice();
+      return;
+    }
+
     setActivePageId(tab.id);
 
     if (tab.id !== "points") {
@@ -243,6 +273,16 @@ export function App() {
           onTabChange={handleTabChange}
           tabs={navigationTabs}
         />
+      ) : null}
+      {isUnsupportedNoticeVisible ? (
+        <div
+          aria-live="polite"
+          className="customer-unsupported-floating-notice"
+          key={unsupportedNoticeKey}
+          role="status"
+        >
+          아직은 지원되지 않는 기능입니다.
+        </div>
       ) : null}
     </CustomerAppShell>
   );
