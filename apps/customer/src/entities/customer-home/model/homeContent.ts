@@ -26,8 +26,10 @@ export type WalletAsset = {
 export type Shortcut = {
   icon: IconComponent;
   label: string;
+  path: string;
   soft?: boolean;
   tone: string;
+  unsupported?: boolean;
 };
 
 export type PromoBanner = {
@@ -70,14 +72,14 @@ export const walletAssets = [
 ] satisfies readonly WalletAsset[];
 
 export const shortcuts = [
-  { icon: CreditCardIcon, label: "결제", tone: "#94a3b8" },
-  { icon: WalletIcon, label: "통합 내역", tone: "#10b981" },
-  { icon: CircleStackIcon, label: "매일모으기", tone: "#f97316" },
-  { icon: TrophyIcon, label: "승부예측", tone: customerColor.brand },
-  { icon: BuildingStorefrontIcon, label: "부스", tone: "#64748b" },
-  { icon: MusicalNoteIcon, label: "공연", tone: "#8b5cf6" },
-  { icon: GiftIcon, label: "혜택", tone: "#374151" },
-  { icon: Squares2X2Icon, label: "전체", tone: "#0f766e" },
+  { icon: CreditCardIcon, label: "결제", path: "/pay", tone: "#94a3b8" },
+  { icon: WalletIcon, label: "통합 내역", path: "/history", tone: "#10b981" },
+  { icon: CircleStackIcon, label: "매일모으기", path: "/points", tone: "#f97316" },
+  { icon: TrophyIcon, label: "승부예측", path: "/points/worldcup", tone: customerColor.brand },
+  { icon: BuildingStorefrontIcon, label: "부스", path: "/booth", tone: "#64748b", unsupported: true },
+  { icon: MusicalNoteIcon, label: "공연", path: "/performances", tone: "#8b5cf6", unsupported: true },
+  { icon: GiftIcon, label: "혜택", path: "/benefits", tone: "#374151", unsupported: true },
+  { icon: Squares2X2Icon, label: "전체", path: "/all", tone: "#0f766e" },
 ] satisfies readonly Shortcut[];
 
 export const promoBanners = [

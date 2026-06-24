@@ -3943,7 +3943,7 @@ button {
 }
 
 .customer-points-worldcup-floating-prediction[data-expanded="true"] {
-  padding: 8px;
+  padding: 10px;
 }
 
 .customer-points-worldcup-floating-prediction[data-selected="home"] {
@@ -4021,7 +4021,7 @@ button {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
   max-height: 0;
-  align-items: end;
+  align-items: stretch;
   overflow: hidden;
   opacity: 0;
   transform: translateY(8px);
@@ -4037,7 +4037,7 @@ button {
 
 .customer-points-worldcup-floating-prediction[data-expanded="true"]
   .customer-points-worldcup-floating-prediction__stake {
-  max-height: 86px;
+  max-height: 104px;
   opacity: 1;
   transform: translateY(0);
 }
@@ -4046,10 +4046,19 @@ button {
   display: grid;
   gap: 6px;
   min-width: 0;
+  align-content: end;
   color: var(--daema-color-foreground-subtle);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 650;
   line-height: 1;
+}
+
+.customer-points-worldcup-floating-prediction__stake label > span {
+  min-width: 0;
+  overflow: hidden;
+  padding-inline: 2px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .customer-points-worldcup-floating-prediction__input-wrap {
@@ -4058,8 +4067,8 @@ button {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  height: 42px;
-  padding: 0 12px;
+  height: 48px;
+  padding: 0 14px;
   border-radius: 14px;
   background: #f3f6fb;
 }
@@ -4086,7 +4095,8 @@ button {
 
 .customer-points-worldcup-floating-prediction__stake > button {
   min-width: 88px;
-  height: 42px;
+  height: 48px;
+  align-self: end;
   border: 0;
   border-radius: 14px;
   background: var(--daema-color-foreground-default);
@@ -4098,6 +4108,57 @@ button {
 }
 
 .customer-points-worldcup-floating-prediction__stake > button:disabled {
+  opacity: 0.45;
+}
+
+.customer-points-worldcup-floating-prediction__result {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    max-height 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease,
+    transform 220ms ease;
+}
+
+.customer-points-worldcup-floating-prediction[data-has-cancel="true"]
+  .customer-points-worldcup-floating-prediction__result {
+  max-height: 44px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.customer-points-worldcup-floating-prediction__result span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--daema-color-foreground-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customer-points-worldcup-floating-prediction__result button {
+  height: 34px;
+  border: 0;
+  border-radius: 12px;
+  background: #eef2f7;
+  color: var(--daema-color-foreground-default);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1;
+  padding: 0 14px;
+}
+
+.customer-points-worldcup-floating-prediction__result button:disabled {
   opacity: 0.45;
 }
 

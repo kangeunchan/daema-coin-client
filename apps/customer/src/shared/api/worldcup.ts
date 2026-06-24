@@ -34,6 +34,7 @@ export type CustomerWorldcupPredictionPick = "away" | "draw" | "home";
 
 export type CustomerWorldcupPredictionSummaryDto = {
   awayPercent: number;
+  canCancel?: boolean;
   canPredict: boolean;
   drawPercent: number;
   homePercent: number;
@@ -41,6 +42,7 @@ export type CustomerWorldcupPredictionSummaryDto = {
   matchStatus?: string;
   matchStatusLabel?: string;
   myPrediction: CustomerWorldcupPredictionPick | null;
+  myStakeAmount?: number | null;
   totalCount: number;
 };
 
@@ -105,6 +107,15 @@ export async function createCustomerWorldcupPrediction(
     {
       body: { pick, stakeAmount },
       method: "POST",
+    },
+  );
+}
+
+export async function cancelCustomerWorldcupPrediction(matchId: string) {
+  return customerApiRequest<unknown>(
+    `/customer/worldcup/matches/${encodeURIComponent(matchId)}/predictions`,
+    {
+      method: "DELETE",
     },
   );
 }

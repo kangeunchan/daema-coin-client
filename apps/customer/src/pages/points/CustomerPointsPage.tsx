@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityCalendar } from "react-activity-calendar";
 import type { Activity } from "react-activity-calendar";
 import { AR, AT, DZ, FR, IQ, JO, KR, MX, NO, SN } from "country-flag-icons/react/3x2";
@@ -27,6 +27,7 @@ import {
   ledgerAmountValue,
 } from "../../shared/api/customerDataMappers";
 import {
+  cancelCustomerWorldcupPrediction,
   createCustomerWorldcupPrediction,
   fetchCustomerWorldcupLineups,
   fetchCustomerWorldcupMatchDays,
@@ -1353,6 +1354,7 @@ function WorldcupPointLoadingContent() {
 }
 
 function WorldcupPointContent({ matchDays }: { matchDays: readonly WorldcupMatchDay[] }) {
+  const dayTabRefs = useRef(new Map<string, HTMLButtonElement>());
   const [selectedDayKey, setSelectedDayKey] = useState(() => {
     const activeDay = matchDays.find((day) => day.isActive) ?? matchDays[0];
 
@@ -1362,6 +1364,20 @@ function WorldcupPointContent({ matchDays }: { matchDays: readonly WorldcupMatch
     matchDays.find((day) => getWorldcupDayKey(day) === selectedDayKey) ??
     matchDays.find((day) => day.isActive) ??
     matchDays[0];
+
+  useEffect(() => {
+    if (!selectedDayKey) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      dayTabRefs.current.get(selectedDayKey)?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+    });
+  }, [selectedDayKey]);
 
   if (matchDays.length === 0) {
     return (
@@ -1387,6 +1403,13 @@ function WorldcupPointContent({ matchDays }: { matchDays: readonly WorldcupMatch
               key={dayKey}
               onClick={() => {
                 setSelectedDayKey(dayKey);
+              }}
+              ref={(element) => {
+                if (element) {
+                  dayTabRefs.current.set(dayKey, element);
+                } else {
+                  dayTabRefs.current.delete(dayKey);
+                }
               }}
               role="tab"
               type="button"
@@ -1508,6 +1531,8 @@ function WorldcupMatchDetailContent({ detail }: { detail: WorldcupMatchDetail })
     null,
   );
   const [canPredict, setCanPredict] = useState(match.status === "예정");
+  const [canCancelPrediction, setCanCancelPrediction] = useState(false);
+  const [selectedStakeAmount, setSelectedStakeAmount] = useState<number | null>(null);
   const [predictionStakeAmount, setPredictionStakeAmount] = useState("100");
   const [isPredictionSubmitting, setIsPredictionSubmitting] = useState(false);
   const homeLineup = apiLineups?.home ?? getWorldcupLineup(match.home);
@@ -1531,6 +1556,8 @@ function WorldcupMatchDetailContent({ detail }: { detail: WorldcupMatchDetail })
           });
           setSelectedPrediction(summary.myPrediction);
           setCanPredict(summary.canPredict);
+          setCanCancelPrediction(Boolean(summary.canCancel));
+          setSelectedStakeAmount(summary.myStakeAmount ?? null);
           setDraftPrediction(null);
         }
       })
@@ -1615,9 +1642,45 @@ function WorldcupMatchDetailContent({ detail }: { detail: WorldcupMatchDetail })
       });
       setSelectedPrediction(summary.myPrediction ?? pick);
       setCanPredict(summary.canPredict);
+      setCanCancelPrediction(Boolean(summary.canCancel));
+      setSelectedStakeAmount(summary.myStakeAmount ?? stakeAmount);
       setDraftPrediction(null);
     } catch {
       // 서버 예측 저장 실패는 현재 화면 상태를 유지한다.
+    } finally {
+      setIsPredictionSubmitting(false);
+    }
+  };
+
+  const handlePredictionCancel = async () => {
+    if (!selectedPrediction || !canCancelPrediction) {
+      return;
+    }
+    if (!isCustomerApiEnabled()) {
+      setSelectedPrediction(null);
+      setSelectedStakeAmount(null);
+      setCanPredict(match.status === "예정");
+      setCanCancelPrediction(false);
+      return;
+    }
+
+    setIsPredictionSubmitting(true);
+
+    try {
+      await cancelCustomerWorldcupPrediction(matchId);
+      const summary = await fetchCustomerWorldcupPredictionSummary(matchId);
+      setPredictionStats({
+        away: summary.awayPercent,
+        draw: summary.drawPercent,
+        home: summary.homePercent,
+      });
+      setSelectedPrediction(summary.myPrediction);
+      setCanPredict(summary.canPredict);
+      setCanCancelPrediction(Boolean(summary.canCancel));
+      setSelectedStakeAmount(summary.myStakeAmount ?? null);
+      setDraftPrediction(null);
+    } catch {
+      // 서버 취소 실패는 현재 화면 상태를 유지한다.
     } finally {
       setIsPredictionSubmitting(false);
     }
@@ -1686,13 +1749,16 @@ function WorldcupMatchDetailContent({ detail }: { detail: WorldcupMatchDetail })
       />
 
       <WorldcupFloatingPrediction
+        canCancel={canCancelPrediction}
         draftPick={draftPrediction}
-        disabled={isPredictionSubmitting || !canPredict}
+        disabled={isPredictionSubmitting || (!canPredict && selectedPrediction === null)}
         match={match}
+        onCancel={handlePredictionCancel}
         onDraftPick={setDraftPrediction}
         onStakeAmountChange={setPredictionStakeAmount}
         onSubmit={handlePredictionSubmit}
         selectedPick={selectedPrediction}
+        selectedStakeAmount={selectedStakeAmount}
         stakeAmount={predictionStakeAmount}
       />
     </div>
@@ -1897,26 +1963,33 @@ function WorldcupPlayerTable({
 }
 
 function WorldcupFloatingPrediction({
+  canCancel,
   draftPick,
   disabled,
   match,
+  onCancel,
   onDraftPick,
   onStakeAmountChange,
   onSubmit,
   selectedPick,
+  selectedStakeAmount,
   stakeAmount,
 }: {
+  canCancel: boolean;
   draftPick: CustomerWorldcupPredictionPick | null;
   disabled: boolean;
   match: WorldcupMatch;
+  onCancel: () => Promise<void>;
   onDraftPick: (pick: CustomerWorldcupPredictionPick) => void;
   onStakeAmountChange: (value: string) => void;
   onSubmit: (pick: CustomerWorldcupPredictionPick, stakeAmount: number) => Promise<void>;
   selectedPick: CustomerWorldcupPredictionPick | null;
+  selectedStakeAmount: number | null;
   stakeAmount: string;
 }) {
   const activePick = selectedPick ?? draftPick;
   const isExpanded = draftPick !== null && selectedPick === null;
+  const isSelected = selectedPick !== null;
   const parsedStakeAmount = Math.max(0, Number.parseInt(stakeAmount, 10) || 0);
   const activeLabel =
     activePick === "home" ? match.home.name : activePick === "away" ? match.away.name : "무승부";
@@ -1926,6 +1999,7 @@ function WorldcupFloatingPrediction({
       className="customer-points-worldcup-floating-prediction"
       aria-label="승부예측 선택"
       data-expanded={isExpanded ? "true" : "false"}
+      data-has-cancel={canCancel && isSelected ? "true" : "false"}
       data-selected={activePick ?? "none"}
     >
       <button
@@ -1991,6 +2065,25 @@ function WorldcupFloatingPrediction({
           투표하기
         </button>
       </form>
+      {isSelected ? (
+        <div className="customer-points-worldcup-floating-prediction__result">
+          <span>
+            {activeLabel}
+            {selectedStakeAmount ? ` · ${selectedStakeAmount.toLocaleString("ko-KR")}P` : null}
+          </span>
+          {canCancel ? (
+            <button
+              disabled={disabled}
+              onClick={() => {
+                void onCancel();
+              }}
+              type="button"
+            >
+              취소
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
