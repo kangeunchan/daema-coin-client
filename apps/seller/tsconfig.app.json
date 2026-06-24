@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "noEmit": true,
+    "tsBuildInfoFile": "dist/.tsbuildinfo.app",
+    "types": ["vite/client", "vitest/globals"]
+  },
+  "include": ["src"],
+  "references": [
+    {
+      "path": "../../libs/design-tokens"
+    },
+    {
+      "path": "../../libs/shared"
+    },
+    {
+      "path": "../../libs/ui"
+    }
+  ]
+}
