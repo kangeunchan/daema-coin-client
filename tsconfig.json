@@ -1,0 +1,23 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./libs/design-tokens"
+    },
+    {
+      "path": "./libs/shared"
+    },
+    {
+      "path": "./libs/ui"
+    },
+    {
+      "path": "./apps/customer"
+    },
+    {
+      "path": "./apps/seller"
+    },
+    {
+      "path": "./apps/admin"
+    }
+  ]
+}

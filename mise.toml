@@ -1,0 +1,47 @@
+[tools]
+bun = "1.3.14"
+node = "24.14.1"
+
+[tasks.install]
+description = "Install Bun workspace dependencies"
+run = "bun install"
+
+[tasks.dev]
+description = "Start all React app dev servers"
+run = "bun run dev"
+
+[tasks.dev-customer]
+description = "Start the customer app"
+run = "bun run dev:customer"
+
+[tasks.dev-seller]
+description = "Start the seller app"
+run = "bun run dev:seller"
+
+[tasks.dev-admin]
+description = "Start the admin app"
+run = "bun run dev:admin"
+
+[tasks.build]
+description = "Build every app and library"
+run = "bun run build"
+
+[tasks.lint]
+description = "Lint every workspace package"
+run = "bun run lint"
+
+[tasks.typecheck]
+description = "Type-check every workspace package"
+run = "bun run typecheck"
+
+[tasks.test]
+description = "Run all package tests"
+run = "bun run test"
+
+[tasks.check]
+description = "Run lint, typecheck, tests, and production builds"
+run = "bun run check"
+
+[tasks.format]
+description = "Format the workspace"
+run = "bun run format"
