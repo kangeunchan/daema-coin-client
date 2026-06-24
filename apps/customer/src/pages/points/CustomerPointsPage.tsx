@@ -1984,7 +1984,7 @@ function WorldcupFloatingPrediction({
               type="text"
               value={stakeAmount}
             />
-            <small>DMC</small>
+            <small>P</small>
           </div>
         </label>
         <button disabled={disabled || parsedStakeAmount <= 0} type="submit">
