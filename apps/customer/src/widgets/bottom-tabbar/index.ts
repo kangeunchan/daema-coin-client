@@ -1,0 +1,1 @@
+export { BottomTabbar } from "./BottomTabbar";
