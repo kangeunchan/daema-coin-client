@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import {
   BoltIcon,
@@ -14,6 +15,9 @@ import {
   WalletIcon,
 } from "@heroicons/react/24/solid";
 
+import { getStoredCustomerProfile } from "../../shared/api/auth";
+import { isCustomerApiEnabled } from "../../shared/api/client";
+import { fetchCustomerMe } from "../../shared/api/customer";
 import { pushCustomerPath } from "../../shared/lib/customerNavigation";
 
 const appFeatureItems = [
@@ -33,10 +37,39 @@ const appFeatureItems = [
 ] as const;
 
 export function CustomerAllPage() {
+  const [displayName, setDisplayName] = useState(() => getStoredCustomerProfile()?.name ?? "사용자");
+
+  useEffect(() => {
+    if (!isCustomerApiEnabled()) {
+      setDisplayName(getStoredCustomerProfile()?.name ?? "사용자");
+      return undefined;
+    }
+
+    let isActive = true;
+
+    void fetchCustomerMe()
+      .then((customer) => {
+        if (!isActive) {
+          return;
+        }
+
+        setDisplayName(customer.displayName ?? customer.github?.login ?? "사용자");
+      })
+      .catch(() => {
+        if (isActive) {
+          setDisplayName("사용자");
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   return (
     <main className="customer-all-page" aria-labelledby="customer-all-title">
       <header className="customer-all-header">
-        <h1 id="customer-all-title">강은찬</h1>
+        <h1 id="customer-all-title">{displayName}</h1>
         <nav aria-label="전체 메뉴 보조 링크">
           <a
             href="/pay"

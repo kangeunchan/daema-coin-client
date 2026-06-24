@@ -30,6 +30,20 @@ export function hasStoredCustomerSession() {
   return window.localStorage.getItem(customerAuthStorageKey) !== null;
 }
 
+export function getStoredCustomerProfile(): CustomerProfile | undefined {
+  const rawProfile = window.localStorage.getItem(customerAuthStorageKey);
+
+  if (!rawProfile) {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(rawProfile) as CustomerProfile;
+  } catch {
+    return undefined;
+  }
+}
+
 export function isGithubLoginSuccessRedirect() {
   return new URLSearchParams(window.location.search).get(githubLoginSuccessParam) === "success";
 }
