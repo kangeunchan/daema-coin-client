@@ -1,0 +1,265 @@
+{
+  "$schema": "https://www.designtokens.org/TR/2025.10/format/",
+  "component": {
+    "app": {
+      "frame": {
+        "maxWidth": {
+          "$type": "dimension",
+          "$value": "{size.appMaxWidth}"
+        },
+        "inset": {
+          "$type": "dimension",
+          "$value": "1.125rem"
+        },
+        "background": {
+          "$type": "color",
+          "$value": "{color.background.canvas}"
+        }
+      }
+    },
+    "header": {
+      "height": {
+        "$type": "dimension",
+        "$value": "3.5rem"
+      },
+      "paddingInline": {
+        "$type": "dimension",
+        "$value": "{component.app.frame.inset}"
+      },
+      "brandColor": {
+        "$type": "color",
+        "$value": "{color.foreground.subtle}"
+      },
+      "brandAccent": {
+        "$type": "color",
+        "$value": "{color.action.primary}"
+      },
+      "iconColor": {
+        "$type": "color",
+        "$value": "{color.foreground.subtle}"
+      }
+    },
+    "card": {
+      "background": {
+        "$type": "color",
+        "$value": "{color.background.surface}"
+      },
+      "backgroundMuted": {
+        "$type": "color",
+        "$value": "{color.background.surfaceMuted}"
+      },
+      "border": {
+        "$type": "color",
+        "$value": "{color.border.subtle}"
+      },
+      "radius": {
+        "$type": "dimension",
+        "$value": "{radius.2xl}"
+      },
+      "padding": {
+        "$type": "dimension",
+        "$value": "{space.5}"
+      },
+      "shadow": {
+        "$type": "shadow",
+        "$value": "{shadow.sm}"
+      }
+    },
+    "notice": {
+      "height": {
+        "$type": "dimension",
+        "$value": "3rem"
+      },
+      "background": {
+        "$type": "color",
+        "$value": "{color.glass.surface}"
+      },
+      "label": {
+        "$type": "color",
+        "$value": "{color.foreground.brand}"
+      },
+      "text": {
+        "$type": "color",
+        "$value": "{color.foreground.muted}"
+      },
+      "radius": {
+        "$type": "dimension",
+        "$value": "{radius.xl}"
+      }
+    },
+    "button": {
+      "height": {
+        "sm": {
+          "$type": "dimension",
+          "$value": "1.75rem"
+        },
+        "md": {
+          "$type": "dimension",
+          "$value": "2.5rem"
+        },
+        "lg": {
+          "$type": "dimension",
+          "$value": "3rem"
+        }
+      },
+      "radius": {
+        "$type": "dimension",
+        "$value": "{radius.full}"
+      },
+      "primary": {
+        "background": {
+          "$type": "color",
+          "$value": "{color.action.primary}"
+        },
+        "backgroundHover": {
+          "$type": "color",
+          "$value": "{color.action.primaryHover}"
+        },
+        "foreground": {
+          "$type": "color",
+          "$value": "{color.action.primaryForeground}"
+        }
+      },
+      "secondary": {
+        "background": {
+          "$type": "color",
+          "$value": "{color.action.secondary}"
+        },
+        "backgroundHover": {
+          "$type": "color",
+          "$value": "{color.action.secondaryHover}"
+        },
+        "foreground": {
+          "$type": "color",
+          "$value": "{color.action.secondaryForeground}"
+        }
+      }
+    },
+    "navigation": {
+      "tabbar": {
+        "height": {
+          "$type": "dimension",
+          "$value": "3.75rem"
+        },
+        "bottomOffset": {
+          "$type": "dimension",
+          "$value": "1.25rem"
+        },
+        "radius": {
+          "$type": "dimension",
+          "$value": "{radius.full}"
+        },
+        "background": {
+          "$type": "color",
+          "$value": "{color.glass.surfaceStrong}"
+        },
+        "backgroundScrolling": {
+          "$type": "color",
+          "$value": "{color.glass.surface}"
+        },
+        "border": {
+          "$type": "color",
+          "$value": "{color.glass.border}"
+        },
+        "indicator": {
+          "$type": "color",
+          "$value": "{color.background.brandSoft}"
+        },
+        "foreground": {
+          "$type": "color",
+          "$value": "{color.foreground.subtle}"
+        },
+        "foregroundActive": {
+          "$type": "color",
+          "$value": "{color.action.primary}"
+        },
+        "shadow": {
+          "$type": "shadow",
+          "$value": "{shadow.glass}"
+        }
+      }
+    },
+    "wallet": {
+      "background": {
+        "$type": "color",
+        "$value": "{color.background.surface}"
+      },
+      "benefitBackground": {
+        "$type": "color",
+        "$value": "{color.background.brandSoft}"
+      },
+      "benefitBorder": {
+        "$type": "color",
+        "$value": "{color.border.brand}"
+      },
+      "benefitForeground": {
+        "$type": "color",
+        "$value": "{color.foreground.brand}"
+      },
+      "assetForeground": {
+        "$type": "color",
+        "$value": "{color.foreground.default}"
+      },
+      "metaForeground": {
+        "$type": "color",
+        "$value": "{color.foreground.muted}"
+      }
+    },
+    "ranking": {
+      "podiumHeight": {
+        "$type": "dimension",
+        "$value": "15.5rem"
+      },
+      "avatar": {
+        "size": {
+          "$type": "dimension",
+          "$value": "2.75rem"
+        },
+        "radius": {
+          "$type": "dimension",
+          "$value": "{radius.xl}"
+        }
+      },
+      "scoreBackground": {
+        "$type": "color",
+        "$value": "{color.background.surfaceMuted}"
+      },
+      "scoreForeground": {
+        "$type": "color",
+        "$value": "{color.foreground.muted}"
+      },
+      "first": {
+        "$type": "color",
+        "$value": "{color.palette.amber.500}"
+      },
+      "second": {
+        "$type": "color",
+        "$value": "{color.palette.neutral.400}"
+      },
+      "third": {
+        "$type": "color",
+        "$value": "{color.palette.amber.700}"
+      }
+    },
+    "motion": {
+      "duration": {
+        "fast": {
+          "$type": "duration",
+          "$value": "{duration.fast}"
+        },
+        "normal": {
+          "$type": "duration",
+          "$value": "{duration.normal}"
+        },
+        "slow": {
+          "$type": "duration",
+          "$value": "{duration.slow}"
+        }
+      },
+      "ease": {
+        "$type": "cubicBezier",
+        "$value": "{ease.standard}"
+      }
+    }
+  }
+}

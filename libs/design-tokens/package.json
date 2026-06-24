@@ -1,0 +1,32 @@
+{
+  "name": "@daema/design-tokens",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./src/index.ts"
+    },
+    "./styles.css": "./src/styles.css",
+    "./tailwind.css": "./src/generated/css/tailwind.css",
+    "./runtime.css": "./src/generated/css/runtime.css"
+  },
+  "scripts": {
+    "build": "bun run tokens:build && tsc -b",
+    "tokens:build": "bun ./scripts/build-tokens.ts",
+    "tokens:check": "bun ./scripts/build-tokens.ts --check",
+    "typecheck": "tsc -b --pretty false && tsc -p tsconfig.scripts.json --pretty false",
+    "lint": "eslint .",
+    "test": "bun run tokens:check && vitest run --passWithNoTests",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "prettier": "catalog:",
+    "style-dictionary": "5.4.4",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "zod": "4.4.3"
+  }
+}

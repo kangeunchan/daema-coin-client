@@ -1,0 +1,181 @@
+{
+  "$schema": "https://www.designtokens.org/TR/2025.10/format/",
+  "color": {
+    "background": {
+      "$type": "color",
+      "canvas": {
+        "$value": "{color.palette.neutral.950}"
+      },
+      "sunken": {
+        "$value": "{color.palette.black}"
+      },
+      "surface": {
+        "$value": "{color.palette.neutral.900}"
+      },
+      "surfaceElevated": {
+        "$value": "{color.palette.neutral.800}"
+      },
+      "surfaceMuted": {
+        "$value": "{color.palette.neutral.800}"
+      },
+      "inverse": {
+        "$value": "{color.palette.white}"
+      },
+      "brandSoft": {
+        "$value": "{color.palette.brand.950}"
+      }
+    },
+    "foreground": {
+      "$type": "color",
+      "default": {
+        "$value": "{color.palette.neutral.50}"
+      },
+      "muted": {
+        "$value": "{color.palette.neutral.300}"
+      },
+      "subtle": {
+        "$value": "{color.palette.neutral.500}"
+      },
+      "inverse": {
+        "$value": "{color.palette.neutral.950}"
+      },
+      "brand": {
+        "$value": "{color.palette.brand.300}"
+      },
+      "onBrand": {
+        "$value": "{color.palette.white}"
+      },
+      "disabled": {
+        "$value": "{color.palette.neutral.600}"
+      }
+    },
+    "border": {
+      "$type": "color",
+      "default": {
+        "$value": "{color.palette.neutral.700}"
+      },
+      "subtle": {
+        "$value": "{color.palette.neutral.800}"
+      },
+      "strong": {
+        "$value": "{color.palette.neutral.600}"
+      },
+      "focus": {
+        "$value": "{color.palette.brand.400}"
+      },
+      "brand": {
+        "$value": "{color.palette.brand.800}"
+      }
+    },
+    "action": {
+      "$type": "color",
+      "primary": {
+        "$value": "{color.palette.brand.500}"
+      },
+      "primaryHover": {
+        "$value": "{color.palette.brand.400}"
+      },
+      "primaryPressed": {
+        "$value": "{color.palette.brand.300}"
+      },
+      "primaryForeground": {
+        "$value": "{color.palette.white}"
+      },
+      "secondary": {
+        "$value": "{color.palette.neutral.800}"
+      },
+      "secondaryHover": {
+        "$value": "{color.palette.neutral.700}"
+      },
+      "secondaryForeground": {
+        "$value": "{color.palette.neutral.100}"
+      }
+    },
+    "accent": {
+      "$type": "color",
+      "default": {
+        "$value": "{color.palette.teal.400}"
+      },
+      "strong": {
+        "$value": "{color.palette.teal.300}"
+      },
+      "soft": {
+        "$value": "{color.palette.teal.900}"
+      },
+      "foreground": {
+        "$value": "{color.palette.teal.100}"
+      }
+    },
+    "status": {
+      "success": {
+        "$type": "color",
+        "background": {
+          "$value": "{color.palette.green.800}"
+        },
+        "border": {
+          "$value": "{color.palette.green.700}"
+        },
+        "foreground": {
+          "$value": "{color.palette.green.100}"
+        }
+      },
+      "warning": {
+        "$type": "color",
+        "background": {
+          "$value": "{color.palette.amber.800}"
+        },
+        "border": {
+          "$value": "{color.palette.amber.700}"
+        },
+        "foreground": {
+          "$value": "{color.palette.amber.100}"
+        }
+      },
+      "danger": {
+        "$type": "color",
+        "background": {
+          "$value": "{color.palette.red.800}"
+        },
+        "border": {
+          "$value": "{color.palette.red.700}"
+        },
+        "foreground": {
+          "$value": "{color.palette.red.100}"
+        }
+      },
+      "info": {
+        "$type": "color",
+        "background": {
+          "$value": "{color.palette.brand.900}"
+        },
+        "border": {
+          "$value": "{color.palette.brand.800}"
+        },
+        "foreground": {
+          "$value": "{color.palette.brand.100}"
+        }
+      }
+    },
+    "overlay": {
+      "$type": "color",
+      "scrim": {
+        "$value": "rgb(2 6 23 / 0.68)"
+      }
+    },
+    "glass": {
+      "$type": "color",
+      "surface": {
+        "$value": "rgb(15 23 42 / 0.68)"
+      },
+      "surfaceStrong": {
+        "$value": "rgb(30 41 59 / 0.84)"
+      },
+      "border": {
+        "$value": "rgb(148 163 184 / 0.28)"
+      },
+      "highlight": {
+        "$value": "rgb(255 255 255 / 0.18)"
+      }
+    }
+  }
+}
