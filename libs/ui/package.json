@@ -1,0 +1,80 @@
+{
+  "name": "@daema/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./src/index.ts"
+    },
+    "./button": {
+      "types": "./dist/src/components/button/index.d.ts",
+      "import": "./src/components/button/index.ts"
+    },
+    "./badge": {
+      "types": "./dist/src/components/badge/index.d.ts",
+      "import": "./src/components/badge/index.ts"
+    },
+    "./card": {
+      "types": "./dist/src/components/card/index.d.ts",
+      "import": "./src/components/card/index.ts"
+    },
+    "./divider": {
+      "types": "./dist/src/components/divider/index.d.ts",
+      "import": "./src/components/divider/index.ts"
+    },
+    "./icon-button": {
+      "types": "./dist/src/components/icon-button/index.d.ts",
+      "import": "./src/components/icon-button/index.ts"
+    },
+    "./layout": {
+      "types": "./dist/src/components/layout/index.d.ts",
+      "import": "./src/components/layout/index.ts"
+    },
+    "./skeleton": {
+      "types": "./dist/src/components/skeleton/index.d.ts",
+      "import": "./src/components/skeleton/index.ts"
+    },
+    "./surface": {
+      "types": "./dist/src/components/surface/index.d.ts",
+      "import": "./src/components/surface/index.ts"
+    },
+    "./text": {
+      "types": "./dist/src/components/text/index.d.ts",
+      "import": "./src/components/text/index.ts"
+    },
+    "./visually-hidden": {
+      "types": "./dist/src/components/visually-hidden/index.d.ts",
+      "import": "./src/components/visually-hidden/index.ts"
+    },
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rm -rf dist"
+  },
+  "peerDependencies": {
+    "react": ">=19.0.0",
+    "react-dom": ">=19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "dependencies": {
+    "@daema/design-tokens": "workspace:*",
+    "@radix-ui/react-slot": "1.3.0",
+    "@radix-ui/react-visually-hidden": "1.2.6",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "tailwind-merge": "3.6.0"
+  }
+}
