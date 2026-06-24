@@ -1,0 +1,41 @@
+@import "tailwindcss";
+@import "@daema/design-tokens/tailwind.css";
+@import "@daema/ui/styles.css";
+
+html {
+  overflow-x: hidden;
+  overflow-x: clip;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+  overflow-x: clip;
+  background: var(--daema-color-background-canvas);
+  color: var(--daema-color-foreground-default);
+  font-family: var(--daema-font-family-sans);
+}
+
+.app {
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+  align-items: center;
+  justify-content: center;
+  padding: var(--daema-space-6);
+}
+
+.admin-shell {
+  width: min(100%, 960px);
+}
+
+.admin-shell__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--daema-space-2);
+  margin-top: var(--daema-space-5);
+}
+
+.admin-shell__actions .daema-ui-button {
+  min-height: 44px;
+}
