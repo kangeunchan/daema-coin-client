@@ -20,8 +20,13 @@ const RankingPodiumCanvas = lazy(() =>
 );
 
 const shouldRenderRankingPodiumCanvas = import.meta.env.MODE !== "test";
+const podiumDisplayOrder = [2, 1, 3] as const;
 
 export function RankingCard({ direction, rankings, title, unavailable = false }: RankingCardProps) {
+  const orderedRankings = podiumDisplayOrder
+    .map((rank) => rankings.find((item) => item.rank === rank))
+    .filter((item): item is RankingEntry => item !== undefined);
+
   return (
     <Surface asChild className="customer-ranking" padding="none">
       <section data-unavailable={unavailable ? "true" : undefined}>
@@ -39,7 +44,7 @@ export function RankingCard({ direction, rankings, title, unavailable = false }:
             <div aria-hidden="true" className="customer-ranking__canvas-fallback" />
           )}
           <div className="customer-ranking__overlay">
-            {rankings.map((item) => {
+            {orderedRankings.map((item) => {
               const avatarStyle = {
                 "--customer-ranking-tone": item.tone,
               } as CSSProperties;
