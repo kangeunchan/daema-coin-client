@@ -1859,12 +1859,9 @@ button {
 }
 
 .customer-ranking {
+  position: relative;
   overflow: hidden;
   padding: 18px 16px 0;
-}
-
-.customer-ranking > section {
-  position: relative;
 }
 
 .customer-ranking:last-of-type {
