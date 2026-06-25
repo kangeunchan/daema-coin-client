@@ -3,9 +3,9 @@ import { expect, test } from "vitest";
 
 import { App } from "./App";
 
-test("renders the seller app scaffold", () => {
+test("renders the booth account login", async () => {
   render(<App />);
 
-  expect(screen.getByLabelText("Seller app scaffold")).toBeVisible();
-  expect(screen.getByText("Seller App")).toBeVisible();
+  expect(await screen.findByLabelText("부스 로그인")).toBeVisible();
+  expect(screen.getByText("부스 계정 로그인")).toBeVisible();
 });

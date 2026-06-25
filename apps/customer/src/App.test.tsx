@@ -54,7 +54,7 @@ test("moves between customer tab pages", async () => {
   expect(window.location.pathname).toBe("/all");
   expect(screen.getByRole("link", { current: "page", name: "전체" })).toBeVisible();
   expect(screen.getByText("사용 중인 기능")).toBeVisible();
-  expect(screen.getByRole("link", { name: "대마페이 바로 결제" })).toBeVisible();
+  expect(screen.getByRole("link", { name: "바코드 결제" })).toBeVisible();
 
   fireEvent.click(screen.getByRole("link", { name: "월드컵 승부예측" }));
 

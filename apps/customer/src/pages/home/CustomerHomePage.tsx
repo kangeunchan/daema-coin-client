@@ -10,14 +10,16 @@ import {
   shortcuts,
   walletAssets,
 } from "../../entities/customer-home";
-import type { RecentTransaction, WalletAsset } from "../../entities/customer-home";
+import type { RankingEntry, RecentTransaction, WalletAsset } from "../../entities/customer-home";
 import { isCustomerApiEnabled } from "../../shared/api/client";
 import {
   emptyWalletAssets,
   mapLedgerRecentTransaction,
+  mapCustomerRankingEntry,
   mapWalletAsset,
 } from "../../shared/api/customerDataMappers";
 import { fetchCustomerLedgerRecent } from "../../shared/api/ledger";
+import { fetchCustomerUserRankings } from "../../shared/api/rankings";
 import { fetchCustomerWalletBalances } from "../../shared/api/wallet";
 import { AppHeader } from "../../widgets/app-header";
 import { NoticeBar } from "../../widgets/notice-bar";
@@ -35,6 +37,9 @@ export function CustomerHomePage() {
   const [apiRecentTransactions, setApiRecentTransactions] = useState<
     readonly RecentTransaction[] | undefined
   >(() => (isApiMode ? [] : undefined));
+  const [apiPersonalRankings, setApiPersonalRankings] = useState<
+    readonly RankingEntry[] | undefined
+  >(() => (isApiMode ? [] : undefined));
 
   useEffect(() => {
     if (!isCustomerApiEnabled()) {
@@ -43,26 +48,47 @@ export function CustomerHomePage() {
 
     let isCancelled = false;
 
-    void Promise.all([fetchCustomerWalletBalances(), fetchCustomerLedgerRecent()])
-      .then(([wallet, ledger]) => {
-        if (isCancelled) {
-          return;
-        }
+    void Promise.allSettled([
+      fetchCustomerWalletBalances(),
+      fetchCustomerLedgerRecent(),
+      fetchCustomerUserRankings(),
+    ]).then(([walletResult, ledgerResult, rankingsResult]) => {
+      if (isCancelled) {
+        return;
+      }
 
-        const mappedWalletAssets = wallet.balances
+      if (walletResult.status === "fulfilled") {
+        const mappedWalletAssets = walletResult.value.balances
           .map(mapWalletAsset)
           .filter((asset): asset is WalletAsset => asset !== undefined);
-        const mappedRecentTransactions = ledger.map(mapLedgerRecentTransaction);
 
         setApiWalletAssets(mappedWalletAssets.length > 0 ? mappedWalletAssets : emptyWalletAssets);
-        setApiRecentTransactions(mappedRecentTransactions);
-      })
-      .catch(() => {
-        if (!isCancelled) {
-          setApiWalletAssets(emptyWalletAssets);
-          setApiRecentTransactions([]);
-        }
-      });
+      } else {
+        setApiWalletAssets(emptyWalletAssets);
+      }
+
+      if (ledgerResult.status === "fulfilled") {
+        setApiRecentTransactions(ledgerResult.value.map(mapLedgerRecentTransaction));
+      } else {
+        setApiRecentTransactions([]);
+      }
+
+      if (rankingsResult.status === "fulfilled") {
+        const mappedPersonalRankings = rankingsResult.value
+          .map(mapCustomerRankingEntry)
+          .filter((ranking): ranking is RankingEntry => ranking !== undefined)
+          .sort((a, b) => a.rank - b.rank)
+          .slice(0, 3);
+
+        setApiPersonalRankings(
+          mappedPersonalRankings.length > 0 ? mappedPersonalRankings : personalPodiumRankings,
+        );
+
+        return;
+      }
+
+      setApiPersonalRankings(personalPodiumRankings);
+    });
 
     return () => {
       isCancelled = true;
@@ -71,6 +97,9 @@ export function CustomerHomePage() {
 
   const walletAssetSource = isApiMode ? (apiWalletAssets ?? emptyWalletAssets) : walletAssets;
   const recentTransactionSource = isApiMode ? (apiRecentTransactions ?? []) : recentTransactions;
+  const personalRankingSource = isApiMode
+    ? (apiPersonalRankings ?? personalPodiumRankings)
+    : personalPodiumRankings;
 
   return (
     <>
@@ -88,11 +117,16 @@ export function CustomerHomePage() {
       <RecentTransactions href="/history" transactions={recentTransactionSource} />
       <RankingCard
         direction="left"
-        rankings={personalPodiumRankings}
+        rankings={personalRankingSource}
         title="개인 대마포인트 랭킹"
       />
       <SinglePromoBanner banner={festivalBanner} />
-      <RankingCard direction="right" rankings={boothPodiumRankings} title="부스 대마포인트 랭킹" />
+      <RankingCard
+        direction="right"
+        rankings={boothPodiumRankings}
+        title="부스 대마포인트 랭킹"
+        unavailable
+      />
     </>
   );
 }

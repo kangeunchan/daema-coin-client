@@ -1,8 +1,13 @@
-import { CustomerApiError, customerApiBaseUrl, customerApiRequest, isCustomerApiEnabled } from "./client";
+import {
+  CustomerApiError,
+  customerApiBaseUrl,
+  customerApiRequest,
+  isCustomerApiEnabled,
+} from "./client";
 
 export type CustomerProfile = {
   name: string;
-  studentId: string;
+  studentNo: string;
 };
 
 export type GithubAuthenticationResult =
@@ -89,7 +94,7 @@ export async function completeGithubAuthentication(): Promise<GithubAuthenticati
 export async function completeStudentProfile(profile: CustomerProfile) {
   if (isCustomerApiEnabled()) {
     await customerApiRequest<void>("/auth/me/student-profile", {
-      body: profile,
+      body: { ...profile, studentId: profile.studentNo },
       method: "PUT",
     });
 

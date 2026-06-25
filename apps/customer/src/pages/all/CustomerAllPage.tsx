@@ -24,11 +24,12 @@ const appFeatureItems = [
 ] as const;
 
 export function CustomerAllPage() {
-  const [displayName, setDisplayName] = useState(() => getStoredCustomerProfile()?.name ?? "사용자");
+  const [displayName, setDisplayName] = useState(
+    () => getStoredCustomerProfile()?.name ?? "사용자",
+  );
 
   useEffect(() => {
     if (!isCustomerApiEnabled()) {
-      setDisplayName(getStoredCustomerProfile()?.name ?? "사용자");
       return undefined;
     }
 
