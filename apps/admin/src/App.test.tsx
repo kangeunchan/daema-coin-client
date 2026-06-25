@@ -3,9 +3,9 @@ import { expect, test } from "vitest";
 
 import { App } from "./App";
 
-test("renders the admin app scaffold", () => {
+test("renders the internal admin login", async () => {
   render(<App />);
 
-  expect(screen.getByLabelText("Admin app scaffold")).toBeVisible();
-  expect(screen.getByText("Admin App")).toBeVisible();
+  expect(await screen.findByLabelText("관리자 로그인")).toBeVisible();
+  expect(screen.getByText("관리자 로그인")).toBeVisible();
 });

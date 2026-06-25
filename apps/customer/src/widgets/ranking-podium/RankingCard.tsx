@@ -10,6 +10,7 @@ type RankingCardProps = {
   direction: "left" | "right";
   rankings: readonly RankingEntry[];
   title: string;
+  unavailable?: boolean;
 };
 
 const RankingPodiumCanvas = lazy(() =>
@@ -20,10 +21,10 @@ const RankingPodiumCanvas = lazy(() =>
 
 const shouldRenderRankingPodiumCanvas = import.meta.env.MODE !== "test";
 
-export function RankingCard({ direction, rankings, title }: RankingCardProps) {
+export function RankingCard({ direction, rankings, title, unavailable = false }: RankingCardProps) {
   return (
     <Surface asChild className="customer-ranking" padding="none">
-      <section>
+      <section data-unavailable={unavailable ? "true" : undefined}>
         <div className="customer-ranking__header">
           <h2 className="customer-ranking__title">{title}</h2>
         </div>
@@ -60,6 +61,11 @@ export function RankingCard({ direction, rankings, title }: RankingCardProps) {
             })}
           </div>
         </div>
+        {unavailable ? (
+          <div className="customer-ranking__unavailable" aria-live="polite">
+            <strong>아직은 지원되지 않는 기능입니다.</strong>
+          </div>
+        ) : null}
       </section>
     </Surface>
   );

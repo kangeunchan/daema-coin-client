@@ -1,5 +1,6 @@
-import type { RecentTransaction, WalletAsset } from "../../entities/customer-home";
+import type { RankingEntry, RecentTransaction, WalletAsset } from "../../entities/customer-home";
 import type { CustomerLedgerAmountDto, CustomerLedgerTransactionDto } from "./ledger";
+import type { CustomerRankingDto } from "./rankings";
 import type { CustomerWalletBalanceDto } from "./wallet";
 
 export const emptyWalletAssets = [
@@ -129,5 +130,34 @@ export function mapLedgerRecentTransaction(
     time:
       getRecordText(transaction, ["displayTime", "time"]) ??
       formatLedgerRelativeTime(transaction.occurredAt),
+  };
+}
+
+const rankingTones = ["#f59e0b", "#64748b", "#10b981"] as const;
+
+export function mapCustomerRankingEntry(
+  item: CustomerRankingDto,
+  index: number,
+): RankingEntry | undefined {
+  const rank = typeof item.rank === "number" && item.rank > 0 ? item.rank : index + 1;
+  const name =
+    getRecordText(item, ["name", "displayName", "customerName", "studentName", "githubLogin"]) ??
+    `사용자 ${rank}`;
+  const points =
+    ledgerAmountValue(item.points) ||
+    ledgerAmountValue(item.totalPoint) ||
+    ledgerAmountValue(item.score) ||
+    ledgerAmountValue(item.balance) ||
+    ledgerAmountValue(item.amount);
+
+  if (points <= 0) {
+    return undefined;
+  }
+
+  return {
+    name,
+    points,
+    rank,
+    tone: rankingTones[Math.min(rank, rankingTones.length) - 1] ?? "#64748b",
   };
 }

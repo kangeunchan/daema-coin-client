@@ -9,7 +9,7 @@ import { LoginCoinCanvas } from "./ui/LoginCoinCanvas";
 type CustomerLoginPageProps = {
   initialStep?: "github" | "profile";
   onGithubAuthenticated: () => Promise<GithubAuthenticationResult>;
-  onLogin: (profile: { name: string; studentId: string }) => Promise<void>;
+  onLogin: (profile: { name: string; studentNo: string }) => Promise<void>;
 };
 
 export function CustomerLoginPage({
@@ -80,7 +80,7 @@ export function CustomerLoginPage({
             setIsProfileLoading(true);
             setErrorMessage(null);
 
-            void onLogin({ name: name.trim(), studentId: studentId.trim() })
+            void onLogin({ name: name.trim(), studentNo: studentId.trim() })
               .then(() => {
                 pushCustomerPath("/");
               })
