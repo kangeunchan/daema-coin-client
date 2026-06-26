@@ -200,8 +200,7 @@ const worldcupFlagIcons = {
 const worldcupMatchDays: readonly WorldcupMatchDay[] = [
   {
     date: "6.23",
-    isActive: true,
-    label: "오늘",
+    label: "화",
     matches: [
       {
         away: { countryCode: "AT", name: "오스트리아", score: 0 },
@@ -332,6 +331,18 @@ const worldcupPredictionStats: Record<string, WorldcupPredictionStats> = {
   "626-sn-iq": { away: 28, draw: 25, home: 47 },
   "627-dz-at": { away: 32, draw: 23, home: 45 },
   "627-jo-ar": { away: 68, draw: 18, home: 14 },
+};
+
+const worldcupPredictionStakeAmounts: Record<string, number> = {
+  "623-ar-at": 184200,
+  "623-fr-iq": 137600,
+  "623-no-sn": 129400,
+  "623-jo-dz": 116800,
+  "625-kr-mx": 248500,
+  "626-no-fr": 193200,
+  "626-sn-iq": 178900,
+  "627-dz-at": 142700,
+  "627-jo-ar": 156300,
 };
 
 const worldcupMatchMetrics = [
@@ -660,6 +671,46 @@ function getTodayWorldcupDayKey() {
   return `${year}-${month}-${day}`;
 }
 
+function getWorldcupDaySortValue(day: WorldcupMatchDay) {
+  const dayKey = getWorldcupDayKey(day);
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dayKey)) {
+    return dayKey;
+  }
+
+  const firstStartsAt = day.matches.find((match) => match.startsAt)?.startsAt;
+
+  if (firstStartsAt) {
+    const startsAtDate = firstStartsAt.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
+
+    if (startsAtDate) {
+      return startsAtDate;
+    }
+
+    const timestamp = Date.parse(firstStartsAt);
+
+    if (!Number.isNaN(timestamp)) {
+      const date = new Date(timestamp);
+      const year = date.getFullYear();
+      const month = `${date.getMonth() + 1}`.padStart(2, "0");
+      const dayOfMonth = `${date.getDate()}`.padStart(2, "0");
+
+      return `${year}-${month}-${dayOfMonth}`;
+    }
+  }
+
+  const dateParts = day.date.match(/^(\d{1,2})\.(\d{1,2})$/);
+
+  if (dateParts) {
+    const [, month = "1", date = "1"] = dateParts;
+    const year = new Date().getFullYear();
+
+    return `${year}-${month.padStart(2, "0")}-${date.padStart(2, "0")}`;
+  }
+
+  return dayKey;
+}
+
 function hasKoreaWorldcupMatch(day: WorldcupMatchDay) {
   return day.matches.some(
     (match) => match.home.countryCode === "KR" || match.away.countryCode === "KR",
@@ -669,11 +720,13 @@ function hasKoreaWorldcupMatch(day: WorldcupMatchDay) {
 function normalizeWorldcupMatchDay(day: WorldcupMatchDay): WorldcupMatchDay {
   const todayKey = getTodayWorldcupDayKey();
   const dayKey = getWorldcupDayKey(day);
+  const daySortValue = getWorldcupDaySortValue(day);
+  const isToday = dayKey === todayKey || daySortValue === todayKey;
   const koreaBadge = hasKoreaWorldcupMatch(day) ? "대한민국" : undefined;
   const normalizedDay: WorldcupMatchDay = {
     ...day,
-    isActive: dayKey === todayKey,
-    label: dayKey === todayKey ? "오늘" : day.label,
+    isActive: isToday,
+    label: isToday ? "오늘" : day.label,
   };
 
   if (koreaBadge) {
@@ -690,7 +743,9 @@ function normalizeWorldcupMatchDays(matchDays: readonly WorldcupMatchDay[]) {
     return [];
   }
 
-  const normalized = matchDays.map(normalizeWorldcupMatchDay);
+  const normalized = matchDays
+    .map(normalizeWorldcupMatchDay)
+    .sort((left, right) => getWorldcupDaySortValue(left).localeCompare(getWorldcupDaySortValue(right)));
   const hasActiveDay = normalized.some((day) => day.isActive);
 
   if (hasActiveDay) {
@@ -698,7 +753,7 @@ function normalizeWorldcupMatchDays(matchDays: readonly WorldcupMatchDay[]) {
   }
 
   const todayKey = getTodayWorldcupDayKey();
-  const nextDayIndex = normalized.findIndex((day) => getWorldcupDayKey(day) >= todayKey);
+  const nextDayIndex = normalized.findIndex((day) => getWorldcupDaySortValue(day) >= todayKey);
   const activeIndex = nextDayIndex >= 0 ? nextDayIndex : normalized.length - 1;
 
   return normalized.map((day, index) => ({
@@ -924,6 +979,10 @@ function buildSoccerLineupPlayer(player: WorldcupPlayer | undefined): WorldcupSo
 
 function getWorldcupPredictionStats(matchId: string): WorldcupPredictionStats {
   return worldcupPredictionStats[matchId] ?? { away: 30, draw: 24, home: 46 };
+}
+
+function getWorldcupPredictionStakeAmount(matchId: string) {
+  return worldcupPredictionStakeAmounts[matchId] ?? 0;
 }
 
 function pushCustomerPath(pathname: string) {
@@ -1533,6 +1592,9 @@ function WorldcupMatchDetailContent({ detail }: { detail: WorldcupMatchDetail })
   const [canPredict, setCanPredict] = useState(match.status === "예정");
   const [canCancelPrediction, setCanCancelPrediction] = useState(false);
   const [selectedStakeAmount, setSelectedStakeAmount] = useState<number | null>(null);
+  const [totalPredictionStakeAmount, setTotalPredictionStakeAmount] = useState(() =>
+    getWorldcupPredictionStakeAmount(matchId),
+  );
   const [predictionStakeAmount, setPredictionStakeAmount] = useState("100");
   const [isPredictionSubmitting, setIsPredictionSubmitting] = useState(false);
   const homeLineup = apiLineups?.home ?? getWorldcupLineup(match.home);
@@ -1558,6 +1620,7 @@ function WorldcupMatchDetailContent({ detail }: { detail: WorldcupMatchDetail })
           setCanPredict(summary.canPredict);
           setCanCancelPrediction(Boolean(summary.canCancel));
           setSelectedStakeAmount(summary.myStakeAmount ?? null);
+          setTotalPredictionStakeAmount(summary.totalStakeAmount ?? 0);
           setDraftPrediction(null);
         }
       })
@@ -1644,6 +1707,7 @@ function WorldcupMatchDetailContent({ detail }: { detail: WorldcupMatchDetail })
       setCanPredict(summary.canPredict);
       setCanCancelPrediction(Boolean(summary.canCancel));
       setSelectedStakeAmount(summary.myStakeAmount ?? stakeAmount);
+      setTotalPredictionStakeAmount(summary.totalStakeAmount ?? stakeAmount);
       setDraftPrediction(null);
     } catch {
       // 서버 예측 저장 실패는 현재 화면 상태를 유지한다.
@@ -1678,6 +1742,7 @@ function WorldcupMatchDetailContent({ detail }: { detail: WorldcupMatchDetail })
       setCanPredict(summary.canPredict);
       setCanCancelPrediction(Boolean(summary.canCancel));
       setSelectedStakeAmount(summary.myStakeAmount ?? null);
+      setTotalPredictionStakeAmount(summary.totalStakeAmount ?? 0);
       setDraftPrediction(null);
     } catch {
       // 서버 취소 실패는 현재 화면 상태를 유지한다.
@@ -1730,6 +1795,8 @@ function WorldcupMatchDetailContent({ detail }: { detail: WorldcupMatchDetail })
         </section>
       </Surface>
 
+      <WorldcupPredictionPayoutCard amount={totalPredictionStakeAmount} />
+
       <WorldcupPredictionStatsCard match={match} stats={predictionStats} />
 
       <WorldcupMatchStatsCard match={match} metrics={matchMetrics} />
@@ -1762,6 +1829,20 @@ function WorldcupMatchDetailContent({ detail }: { detail: WorldcupMatchDetail })
         stakeAmount={predictionStakeAmount}
       />
     </div>
+  );
+}
+
+function WorldcupPredictionPayoutCard({ amount }: { amount: number }) {
+  return (
+    <Surface asChild className="customer-points-worldcup-payout-card" padding="none">
+      <section aria-labelledby="customer-worldcup-payout-title">
+        <div>
+          <h2 id="customer-worldcup-payout-title">총 배당금</h2>
+          <span>승부예측 누적 풀</span>
+        </div>
+        <strong>{amount.toLocaleString("ko-KR")}P</strong>
+      </section>
+    </Surface>
   );
 }
 

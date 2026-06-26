@@ -543,8 +543,11 @@ type WorldcupPredictionSummary = {
   drawPercent: number;
   awayPercent: number;
   totalCount: number;
+  totalStakeAmount: number;
   myPrediction?: "home" | "draw" | "away";
+  myStakeAmount?: number;
   canPredict: boolean;
+  canCancel?: boolean;
   closesAt?: string;
 };
 

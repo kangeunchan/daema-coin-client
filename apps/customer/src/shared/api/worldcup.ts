@@ -44,6 +44,7 @@ export type CustomerWorldcupPredictionSummaryDto = {
   myPrediction: CustomerWorldcupPredictionPick | null;
   myStakeAmount?: number | null;
   totalCount: number;
+  totalStakeAmount?: number;
 };
 
 export type CustomerWorldcupMatchMetricDto = {

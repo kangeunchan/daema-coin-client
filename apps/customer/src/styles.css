@@ -3668,6 +3668,48 @@ button {
   padding: 18px;
 }
 
+.customer-points-worldcup-payout-card {
+  padding: 18px;
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgb(34 168 82 / 0.14), rgb(56 189 248 / 0.12)),
+    var(--daema-color-background-surface);
+}
+
+.customer-points-worldcup-payout-card section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+
+.customer-points-worldcup-payout-card h2 {
+  margin: 0;
+  color: var(--daema-color-foreground-default);
+  font-size: 15px;
+  font-weight: 720;
+  line-height: 1;
+}
+
+.customer-points-worldcup-payout-card span {
+  display: block;
+  margin-top: 7px;
+  color: var(--daema-color-foreground-subtle);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.customer-points-worldcup-payout-card strong {
+  flex: 0 0 auto;
+  color: #15803d;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .customer-points-worldcup-prediction-card h2 {
   margin: 0;
   color: var(--daema-color-foreground-default);

@@ -1,15 +1,18 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { App } from "./App";
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-06-26T00:00:00+09:00"));
   window.localStorage.removeItem("daema-customer-auth");
   window.history.replaceState({}, "", "/");
 });
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
 });
 
 test("renders the mobile web app width range", () => {
@@ -79,8 +82,9 @@ test("shows point-specific bottom tabs on points page", async () => {
 
   expect(window.location.pathname).toBe("/points/worldcup");
   expect(screen.getByRole("region", { name: "월드컵 포인트" })).toBeVisible();
-  expect(screen.getAllByText("아르헨티나")[0]).toBeVisible();
-  expect(screen.getAllByText("오스트리아")[0]).toBeVisible();
+  expect(screen.getByRole("tab", { name: "06.26. (오늘)", selected: true })).toBeVisible();
+  expect(screen.getAllByText("프랑스")[0]).toBeVisible();
+  expect(screen.getAllByText("노르웨이")[0]).toBeVisible();
 
   fireEvent.click(screen.getByRole("button", { name: "일일" }));
 
