@@ -37,7 +37,7 @@ test("moves between customer tab pages", async () => {
   fireEvent.click(screen.getByRole("link", { name: "내역 상세 보기" }));
 
   expect(window.location.pathname).toBe("/history");
-  expect(screen.getByRole("heading", { name: "6월 내역" })).toBeVisible();
+  expect(await screen.findByRole("heading", { name: "6월 내역" })).toBeVisible();
 
   fireEvent.click(screen.getByRole("link", { name: "페이" }));
 
@@ -55,14 +55,14 @@ test("moves between customer tab pages", async () => {
   fireEvent.click(screen.getByRole("link", { name: "전체" }));
 
   expect(window.location.pathname).toBe("/all");
-  expect(screen.getByRole("link", { current: "page", name: "전체" })).toBeVisible();
-  expect(screen.getByText("사용 중인 기능")).toBeVisible();
+  expect(await screen.findByRole("link", { current: "page", name: "전체" })).toBeVisible();
+  expect(await screen.findByText("사용 중인 기능")).toBeVisible();
   expect(screen.getByRole("link", { name: "바코드 결제" })).toBeVisible();
 
   fireEvent.click(screen.getByRole("link", { name: "월드컵 승부예측" }));
 
   expect(window.location.pathname).toBe("/points/worldcup");
-  expect(screen.getByRole("region", { name: "월드컵 포인트" })).toBeVisible();
+  expect(await screen.findByRole("region", { name: "월드컵 포인트" })).toBeVisible();
 });
 
 test("shows point-specific bottom tabs on points page", async () => {
@@ -72,7 +72,7 @@ test("shows point-specific bottom tabs on points page", async () => {
   fireEvent.click(screen.getByRole("link", { name: "포인트" }));
 
   expect(window.location.pathname).toBe("/points");
-  expect(screen.getByRole("region", { name: "최근 커밋 활동" })).toBeVisible();
+  expect(await screen.findByRole("region", { name: "최근 커밋 활동" })).toBeVisible();
   expect(screen.getByRole("region", { name: "월별 커밋 예측" })).toBeVisible();
   expect(screen.getByRole("navigation", { name: "포인트" })).toBeVisible();
   expect(screen.getByRole("button", { name: "일일" })).toBeVisible();

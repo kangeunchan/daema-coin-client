@@ -7,9 +7,41 @@ type AppHeaderProps = {
   stickyActions?: boolean;
 };
 
+type HeaderActionButtonProps = {
+  icon: typeof BellIcon;
+  label: string;
+};
+
+export function CustomerBrandLink() {
+  return (
+    <a aria-label="Daema home" className="customer-brand" href="/">
+      <span>daema</span>
+      <span className="customer-brand__dot">.</span>
+    </a>
+  );
+}
+
+export function HeaderActionButton({ icon: Icon, label }: HeaderActionButtonProps) {
+  return (
+    <IconButton aria-label={label} className="customer-header__button" intent="ghost" type="button">
+      <Icon aria-hidden="true" />
+    </IconButton>
+  );
+}
+
+export function HeaderActions({ action = "notifications" }: Pick<AppHeaderProps, "action">) {
+  const ActionIcon = action === "cart" ? ShoppingBagIcon : BellIcon;
+
+  return (
+    <div className="customer-header__actions">
+      <HeaderActionButton icon={MagnifyingGlassIcon} label="Search" />
+      <HeaderActionButton icon={ActionIcon} label={action === "cart" ? "Cart" : "Notifications"} />
+    </div>
+  );
+}
+
 export function AppHeader({ action = "notifications", stickyActions = false }: AppHeaderProps) {
   const [hasScrolled, setHasScrolled] = useState(false);
-  const ActionIcon = action === "cart" ? ShoppingBagIcon : BellIcon;
 
   useEffect(() => {
     if (!stickyActions) {
@@ -34,29 +66,8 @@ export function AppHeader({ action = "notifications", stickyActions = false }: A
       data-scrolled={hasScrolled ? "true" : undefined}
       data-sticky-actions={stickyActions ? "true" : undefined}
     >
-      <a aria-label="Daema home" className="customer-brand" href="/">
-        <span>daema</span>
-        <span className="customer-brand__dot">.</span>
-      </a>
-
-      <div className="customer-header__actions">
-        <IconButton
-          aria-label="Search"
-          className="customer-header__button"
-          intent="ghost"
-          type="button"
-        >
-          <MagnifyingGlassIcon aria-hidden="true" />
-        </IconButton>
-        <IconButton
-          aria-label={action === "cart" ? "Cart" : "Notifications"}
-          className="customer-header__button"
-          intent="ghost"
-          type="button"
-        >
-          <ActionIcon aria-hidden="true" />
-        </IconButton>
-      </div>
+      <CustomerBrandLink />
+      <HeaderActions action={action} />
     </header>
   );
 }

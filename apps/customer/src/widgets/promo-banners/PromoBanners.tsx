@@ -8,7 +8,7 @@ type PromoBannersProps = {
   banners: readonly PromoBannerContent[];
 };
 
-type SinglePromoBannerProps = {
+export type SinglePromoBannerProps = {
   banner: PromoBannerContent;
 };
 
@@ -54,7 +54,7 @@ export function PromoBanners({ banners }: PromoBannersProps) {
       ref={promoScrollerRef}
     >
       {banners.map((banner) => (
-        <PromoBannerView banner={banner} key={banner.title} />
+        <PromoBannerItem banner={banner} key={banner.title} />
       ))}
     </section>
   );
@@ -75,7 +75,7 @@ export function SinglePromoBanner({ banner }: SinglePromoBannerProps) {
   );
 }
 
-function PromoBannerView({ banner }: SinglePromoBannerProps) {
+export function PromoBannerItem({ banner }: SinglePromoBannerProps) {
   return (
     <Surface asChild className="customer-promo" padding="none" tone="muted">
       <a href="/" onClick={(event) => event.preventDefault()}>
@@ -85,7 +85,7 @@ function PromoBannerView({ banner }: SinglePromoBannerProps) {
   );
 }
 
-function PromoBannerContent({ banner }: SinglePromoBannerProps) {
+export function PromoBannerContent({ banner }: SinglePromoBannerProps) {
   return (
     <>
       <span className="customer-promo__copy">

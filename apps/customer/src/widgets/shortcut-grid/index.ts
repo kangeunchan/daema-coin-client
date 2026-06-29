@@ -1,1 +1,7 @@
-export { ShortcutGrid } from "./ShortcutGrid";
+export {
+  ShortcutGrid,
+  ShortcutIcon,
+  ShortcutItem,
+  ShortcutLabel,
+  UnsupportedFloatingNotice,
+} from "./ShortcutGrid";

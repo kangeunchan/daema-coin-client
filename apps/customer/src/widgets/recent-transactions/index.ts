@@ -1,1 +1,8 @@
-export { RecentTransactions } from "./RecentTransactions";
+export {
+  RecentTransactionItem,
+  RecentTransactions,
+  RecentTransactionsContent,
+  RecentTransactionsEmpty,
+  RecentTransactionsHeader,
+  RecentTransactionsList,
+} from "./RecentTransactions";

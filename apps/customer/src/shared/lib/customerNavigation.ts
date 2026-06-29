@@ -1,3 +1,9 @@
+import type { MouseEvent } from "react";
+
+export function getCurrentCustomerPathname() {
+  return window.location.pathname;
+}
+
 export function getCustomerNavigationState(pathname: string) {
   if (pathname === "/login") {
     return { customerPageId: "login" };
@@ -33,7 +39,7 @@ export function getCustomerNavigationState(pathname: string) {
 export function pushCustomerPath(pathname: string) {
   const navigationState = getCustomerNavigationState(pathname);
 
-  if (window.location.pathname !== pathname) {
+  if (getCurrentCustomerPathname() !== pathname) {
     window.history.pushState(navigationState, "", pathname);
   }
 
@@ -42,4 +48,32 @@ export function pushCustomerPath(pathname: string) {
       ? new PopStateEvent("popstate", { state: navigationState })
       : new Event("popstate"),
   );
+}
+
+export function shouldHandleCustomerNavigationClick(event: MouseEvent<HTMLElement>) {
+  const target = event.currentTarget.getAttribute("target");
+
+  return (
+    !event.defaultPrevented &&
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey &&
+    (!target || target === "_self")
+  );
+}
+
+export function navigateCustomerPathFromClick(
+  event: MouseEvent<HTMLElement>,
+  pathname: string,
+) {
+  if (!shouldHandleCustomerNavigationClick(event)) {
+    return false;
+  }
+
+  event.preventDefault();
+  pushCustomerPath(pathname);
+
+  return true;
 }

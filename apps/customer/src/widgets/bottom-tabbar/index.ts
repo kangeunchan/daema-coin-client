@@ -1,1 +1,8 @@
-export { BottomTabbar } from "./BottomTabbar";
+export {
+  BottomTabbar,
+  PointBackButton,
+  PointMatchLabel,
+  PointTabItem,
+  PrimaryTabIndicator,
+  PrimaryTabItem,
+} from "./BottomTabbar";

@@ -3,6 +3,7 @@ import type { CustomerLedgerAmountDto } from "./ledger";
 
 export type CustomerRankingDto = Record<string, unknown> & {
   amount?: CustomerLedgerAmountDto | number;
+  avatarUrl?: string;
   balance?: CustomerLedgerAmountDto | number;
   displayName?: string;
   githubLogin?: string;

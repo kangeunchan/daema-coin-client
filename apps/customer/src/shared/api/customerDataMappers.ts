@@ -154,10 +154,16 @@ export function mapCustomerRankingEntry(
     return undefined;
   }
 
-  return {
+  const rankingEntry: RankingEntry = {
     name,
     points,
     rank,
     tone: rankingTones[Math.min(rank, rankingTones.length) - 1] ?? "#64748b",
   };
+
+  if (typeof item.avatarUrl === "string" && item.avatarUrl.length > 0) {
+    rankingEntry.avatarUrl = item.avatarUrl;
+  }
+
+  return rankingEntry;
 }

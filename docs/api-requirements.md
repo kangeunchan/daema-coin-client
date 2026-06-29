@@ -262,6 +262,7 @@ type RankingEntry = {
   scoreLabel: string;
   tone?: string;
   avatar?: MediaAsset;
+  avatarUrl?: string;
 };
 ```
 

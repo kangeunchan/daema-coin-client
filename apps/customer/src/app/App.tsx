@@ -1,15 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
 import { navigationTabs } from "../entities/customer-home";
 import type { NavigationTab } from "../entities/customer-home";
-import { CustomerAllPage } from "../pages/all/CustomerAllPage";
-import { CustomerHistoryPage } from "../pages/history/CustomerHistoryPage";
-import { CustomerHomePage } from "../pages/home/CustomerHomePage";
 import { CustomerLoginPage } from "../pages/login/CustomerLoginPage";
-import { CustomerMapPage } from "../pages/map/CustomerMapPage";
-import { CustomerPayPage } from "../pages/pay/CustomerPayPage";
-import { CustomerPointsPage } from "../pages/points/CustomerPointsPage";
-import { CustomerTabPage } from "../pages/tab/CustomerTabPage";
 import {
   checkCustomerSession,
   completeGithubAuthentication,
@@ -18,9 +11,39 @@ import {
   isGithubLoginSuccessRedirect,
 } from "../shared/api/auth";
 import { isCustomerApiEnabled } from "../shared/api/client";
-import { pushCustomerPath } from "../shared/lib/customerNavigation";
+import {
+  getCurrentCustomerPathname,
+  pushCustomerPath,
+} from "../shared/lib/customerNavigation";
+import { useCustomerPathname } from "../shared/lib/useCustomerPathname";
 import { BottomTabbar } from "../widgets/bottom-tabbar";
 import { CustomerAppShell } from "./ui/CustomerAppShell";
+
+const CustomerAllPage = lazy(() =>
+  import("../pages/all/CustomerAllPage").then((module) => ({ default: module.CustomerAllPage })),
+);
+const CustomerHistoryPage = lazy(() =>
+  import("../pages/history/CustomerHistoryPage").then((module) => ({
+    default: module.CustomerHistoryPage,
+  })),
+);
+const CustomerHomePage = lazy(() =>
+  import("../pages/home/CustomerHomePage").then((module) => ({ default: module.CustomerHomePage })),
+);
+const CustomerMapPage = lazy(() =>
+  import("../pages/map/CustomerMapPage").then((module) => ({ default: module.CustomerMapPage })),
+);
+const CustomerPayPage = lazy(() =>
+  import("../pages/pay/CustomerPayPage").then((module) => ({ default: module.CustomerPayPage })),
+);
+const CustomerPointsPage = lazy(() =>
+  import("../pages/points/CustomerPointsPage").then((module) => ({
+    default: module.CustomerPointsPage,
+  })),
+);
+const CustomerTabPage = lazy(() =>
+  import("../pages/tab/CustomerTabPage").then((module) => ({ default: module.CustomerTabPage })),
+);
 
 type CustomerPageId = NavigationTab["id"] | "history";
 type CustomerPointTabId = "daily" | "worldcup";
@@ -51,19 +74,15 @@ function getPointTabIdFromPathname(pathname: string): CustomerPointTabId {
 }
 
 export function App() {
-  const [pathname, setPathname] = useState(() => window.location.pathname);
+  const pathname = useCustomerPathname();
   const [isAuthenticated, setIsAuthenticated] = useState(() => hasStoredCustomerSession());
   const [isAuthChecking, setIsAuthChecking] = useState(() => isCustomerApiEnabled());
   const [loginStep, setLoginStep] = useState<CustomerLoginStep>("github");
   const [unsupportedNoticeKey, setUnsupportedNoticeKey] = useState(0);
   const [isUnsupportedNoticeVisible, setIsUnsupportedNoticeVisible] = useState(false);
-  const [activePageId, setActivePageId] = useState<CustomerPageId>(() =>
-    getPageIdFromPathname(window.location.pathname),
-  );
-  const [activePointTabId, setActivePointTabId] = useState<CustomerPointTabId>(() =>
-    getPointTabIdFromPathname(window.location.pathname),
-  );
   const unsupportedNoticeTimerRef = useRef<number | undefined>(undefined);
+  const activePageId = getPageIdFromPathname(pathname);
+  const activePointTabId = getPointTabIdFromPathname(pathname);
 
   const showUnsupportedNotice = () => {
     if (unsupportedNoticeTimerRef.current) {
@@ -77,22 +96,6 @@ export function App() {
       setIsUnsupportedNoticeVisible(false);
     }, 1800);
   };
-
-  useEffect(() => {
-    const handlePopState = () => {
-      const nextPathname = window.location.pathname;
-
-      setPathname(nextPathname);
-      setActivePageId(getPageIdFromPathname(nextPathname));
-      setActivePointTabId(getPointTabIdFromPathname(nextPathname));
-    };
-
-    window.addEventListener("popstate", handlePopState);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, []);
 
   useEffect(
     () => () => {
@@ -129,7 +132,7 @@ export function App() {
         if (result.status === "authenticated") {
           setIsAuthenticated(true);
 
-          if (window.location.pathname === "/login") {
+          if (getCurrentCustomerPathname() === "/login") {
             pushCustomerPath("/");
           }
 
@@ -141,7 +144,7 @@ export function App() {
         if (result.status === "profile_required") {
           setLoginStep("profile");
 
-          if (window.location.pathname !== "/login") {
+          if (getCurrentCustomerPathname() !== "/login") {
             pushCustomerPath("/login");
           }
         }
@@ -194,28 +197,13 @@ export function App() {
       return;
     }
 
-    setActivePageId(tab.id);
-
-    if (tab.id !== "points") {
-      setActivePointTabId("daily");
-    }
-
-    if (window.location.pathname !== tab.path) {
-      window.history.pushState({ customerPageId: tab.id }, "", tab.path);
-      window.dispatchEvent(new Event("popstate"));
-    }
+    pushCustomerPath(tab.path);
   };
 
   const handlePointTabChange = (tabId: CustomerPointTabId) => {
     const pathname = tabId === "worldcup" ? "/points/worldcup" : "/points";
 
-    setActivePageId("points");
-    setActivePointTabId(tabId);
-
-    if (window.location.pathname !== pathname) {
-      window.history.pushState({ customerPageId: "points", customerPointTabId: tabId }, "", pathname);
-      window.dispatchEvent(new Event("popstate"));
-    }
+    pushCustomerPath(pathname);
   };
 
   const isLoginPath = pathname === "/login";
@@ -247,7 +235,7 @@ export function App() {
             }}
           />
         ) : (
-          <>
+          <Suspense fallback={<div aria-label="페이지 불러오는 중" role="status" />}>
             {activePageId === "home" ? <CustomerHomePage /> : null}
             {activePageId === "pay" ? <CustomerPayPage /> : null}
             {activePageId === "map" ? <CustomerMapPage /> : null}
@@ -262,7 +250,7 @@ export function App() {
             activePageId !== "history" ? (
               <CustomerTabPage />
             ) : null}
-          </>
+          </Suspense>
         )}
       </div>
       {shouldShowBottomTabbar ? (

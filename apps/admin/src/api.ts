@@ -1,29 +1,11 @@
-export class AdminApiError extends Error {
-  readonly code: string | undefined;
-  readonly status: number;
+import { JsonApiError, requestJsonApi } from "@daema/shared";
+import type { JsonApiRequestOptions } from "@daema/shared";
 
+export class AdminApiError extends JsonApiError {
   constructor(message: string, status: number, code?: string) {
-    super(message);
-    this.code = code;
-    this.name = "AdminApiError";
-    this.status = status;
+    super(message, status, { code, name: "AdminApiError" });
   }
 }
-
-type ApiEnvelope<TResponse> = {
-  data: TResponse;
-};
-
-type ApiErrorEnvelope = {
-  error?: {
-    code?: string;
-    message?: string;
-  };
-};
-
-type ApiRequestOptions = Omit<RequestInit, "body"> & {
-  body?: unknown;
-};
 
 export type AdminUser = {
   expiresAt?: string;
@@ -61,57 +43,18 @@ export function isAdminApiEnabled() {
   return adminApiBaseUrl.length > 0;
 }
 
-async function adminApiRequest<TResponse>(path: string, options: ApiRequestOptions = {}) {
+async function adminApiRequest<TResponse>(path: string, options: JsonApiRequestOptions = {}) {
   if (!adminApiBaseUrl) {
     throw new AdminApiError("Admin API base URL is not configured.", 0);
   }
 
-  const { body, ...requestOptions } = options;
-  const headers = new Headers(options.headers);
-
-  if (!headers.has("Accept")) {
-    headers.set("Accept", "application/json");
-  }
-
-  if (body !== undefined && !headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
-  }
-
-  const requestInit: RequestInit = {
-    ...requestOptions,
-    credentials: "include",
-    headers,
-  };
-
-  if (body !== undefined) {
-    requestInit.body = JSON.stringify(body);
-  }
-
-  const response = await fetch(`${adminApiBaseUrl}${path}`, requestInit);
-  const responseText = await response.text();
-  let payload: unknown;
-
-  try {
-    payload = responseText ? JSON.parse(responseText) : undefined;
-  } catch {
-    payload = undefined;
-  }
-
-  if (!response.ok) {
-    const error = (payload as ApiErrorEnvelope | undefined)?.error;
-
-    throw new AdminApiError(
-      error?.message || response.statusText || "Admin API request failed.",
-      response.status,
-      error?.code,
-    );
-  }
-
-  if (payload && typeof payload === "object" && "data" in payload) {
-    return (payload as ApiEnvelope<TResponse>).data;
-  }
-
-  return payload as TResponse;
+  return requestJsonApi<TResponse, AdminApiError>({
+    baseUrl: adminApiBaseUrl,
+    createError: ({ code, message, status }) => new AdminApiError(message, status, code),
+    defaultErrorMessage: "Admin API request failed.",
+    options,
+    path,
+  });
 }
 
 export async function loginAdmin(loginId: string, password: string) {

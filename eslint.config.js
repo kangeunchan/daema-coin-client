@@ -7,7 +7,14 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["**/dist/**", "**/coverage/**", "**/node_modules/**", ".turbo/**", "bun.lock"],
+    ignores: [
+      "**/dist/**",
+      "**/storybook-static/**",
+      "**/coverage/**",
+      "**/node_modules/**",
+      ".turbo/**",
+      "bun.lock",
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

@@ -11,9 +11,15 @@ import {
 } from "../../shared/api/ledger";
 import type {
   CustomerLedgerAnalysisDto,
-  CustomerLedgerAmountDto,
+  CustomerLedgerCalendarEntryDto,
   CustomerLedgerTransactionDto,
 } from "../../shared/api/ledger";
+import {
+  formatLedgerRelativeTime,
+  getLedgerRecordAmount,
+  getRecordText,
+  ledgerAmountValue,
+} from "../../shared/api/customerDataMappers";
 import { AppHeader } from "../../widgets/app-header";
 
 type HistoryView = "calendar" | "transactions" | "analysis";
@@ -161,72 +167,11 @@ function formatSignedDmc(value: number) {
   return `${value > 0 ? "+" : "-"}${formatDmc(value)}`;
 }
 
-function amountDtoValue(amount: CustomerLedgerAmountDto | number | unknown) {
-  if (typeof amount === "number") {
-    return amount;
-  }
-
-  if (amount && typeof amount === "object" && "value" in amount) {
-    const value = (amount as CustomerLedgerAmountDto).value;
-
-    return typeof value === "number" ? value : 0;
-  }
-
-  return 0;
-}
-
-function getLedgerRecordAmount(transaction: CustomerLedgerTransactionDto) {
-  return (
-    amountDtoValue(transaction.totalAmount) ||
-    amountDtoValue(transaction.amount) ||
-    amountDtoValue(transaction.price) ||
-    amountDtoValue(transaction.unitAmount)
-  );
-}
-
-function getLedgerRecordText(transaction: CustomerLedgerTransactionDto, keys: string[]) {
-  for (const key of keys) {
-    const value = transaction[key];
-
-    if (typeof value === "string" && value.trim().length > 0) {
-      return value;
-    }
-  }
-
-  return undefined;
-}
-
-function formatLedgerRelativeTime(occurredAt: string | undefined) {
-  if (!occurredAt) {
-    return "방금 전";
-  }
-
-  const timestamp = new Date(occurredAt).getTime();
-
-  if (Number.isNaN(timestamp)) {
-    return occurredAt;
-  }
-
-  const diffMs = Date.now() - timestamp;
-  const diffHours = Math.max(0, Math.floor(diffMs / 1000 / 60 / 60));
-
-  if (diffHours < 1) {
-    return "방금 전";
-  }
-
-  if (diffHours < 24) {
-    return `${diffHours}시간 전`;
-  }
-
-  return `${Math.floor(diffHours / 24)}일 전`;
-}
-
 function mapLedgerTransaction(transaction: CustomerLedgerTransactionDto): HistoryTransaction {
   const direction = transaction.direction === "income" ? "income" : "expense";
   const amount = Math.abs(getLedgerRecordAmount(transaction));
   const label =
-    getLedgerRecordText(transaction, ["title", "label", "description", "categoryLabel", "type"]) ??
-    "거래 내역";
+    getRecordText(transaction, ["title", "label", "description", "categoryLabel", "type"]) ?? "거래 내역";
 
   return {
     amount: direction === "income" ? amount : -amount,
@@ -240,23 +185,18 @@ function mapLedgerAnalysis(analysis: CustomerLedgerAnalysisDto): HistoryAnalysis
   const mapCategory = (category: CustomerLedgerAnalysisDto["incomeCategories"][number]) => ({
     color: category.color || "#2563eb",
     label: category.label,
-    value: amountDtoValue(category.value),
+    value: ledgerAmountValue(category.value),
   });
 
   return {
     expenseCategories: analysis.expenseCategories.map(mapCategory),
-    expenseTotal: amountDtoValue(analysis.expenseTotal),
+    expenseTotal: ledgerAmountValue(analysis.expenseTotal),
     incomeCategories: analysis.incomeCategories.map(mapCategory),
-    incomeTotal: amountDtoValue(analysis.incomeTotal),
+    incomeTotal: ledgerAmountValue(analysis.incomeTotal),
   };
 }
 
-function mapLedgerCalendarEntry(entry: {
-  active?: boolean;
-  day: number;
-  expense?: CustomerLedgerAmountDto;
-  income?: CustomerLedgerAmountDto;
-}): HistoryCalendarEntry {
+function mapLedgerCalendarEntry(entry: CustomerLedgerCalendarEntryDto): HistoryCalendarEntry {
   const mappedEntry: HistoryCalendarEntry = {
     day: entry.day,
   };
@@ -266,11 +206,11 @@ function mapLedgerCalendarEntry(entry: {
   }
 
   if (entry.expense) {
-    mappedEntry.expense = amountDtoValue(entry.expense);
+    mappedEntry.expense = ledgerAmountValue(entry.expense);
   }
 
   if (entry.income) {
-    mappedEntry.income = amountDtoValue(entry.income);
+    mappedEntry.income = ledgerAmountValue(entry.income);
   }
 
   return mappedEntry;

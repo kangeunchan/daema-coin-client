@@ -1971,6 +1971,7 @@ button {
   display: grid;
   width: 38px;
   height: 38px;
+  overflow: hidden;
   place-items: center;
   border: 2px solid rgb(255 255 255 / 0.92);
   border-radius: 14px;
@@ -1979,6 +1980,12 @@ button {
   font-size: 15px;
   font-weight: 800;
   line-height: 1;
+}
+
+.customer-ranking__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .customer-ranking__slot[data-rank="1"] .customer-ranking__avatar {
@@ -3689,15 +3696,6 @@ button {
   color: var(--daema-color-foreground-default);
   font-size: 15px;
   font-weight: 720;
-  line-height: 1;
-}
-
-.customer-points-worldcup-payout-card span {
-  display: block;
-  margin-top: 7px;
-  color: var(--daema-color-foreground-subtle);
-  font-size: 12px;
-  font-weight: 650;
   line-height: 1;
 }
 

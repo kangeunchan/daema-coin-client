@@ -12,7 +12,7 @@ import {
 import { getStoredCustomerProfile } from "../../shared/api/auth";
 import { isCustomerApiEnabled } from "../../shared/api/client";
 import { fetchCustomerMe } from "../../shared/api/customer";
-import { pushCustomerPath } from "../../shared/lib/customerNavigation";
+import { navigateCustomerPathFromClick } from "../../shared/lib/customerNavigation";
 
 const appFeatureItems = [
   { href: "/", icon: HomeIcon, label: "홈 대시보드", tone: "#64748b" },
@@ -62,8 +62,7 @@ export function CustomerAllPage() {
           <a
             href="/pay"
             onClick={(event) => {
-              event.preventDefault();
-              pushCustomerPath("/pay");
+              navigateCustomerPathFromClick(event, "/pay");
             }}
           >
             페이
@@ -72,8 +71,7 @@ export function CustomerAllPage() {
           <a
             href="/points"
             onClick={(event) => {
-              event.preventDefault();
-              pushCustomerPath("/points");
+              navigateCustomerPathFromClick(event, "/points");
             }}
           >
             포인트
@@ -92,8 +90,7 @@ export function CustomerAllPage() {
                 <a
                   href={item.href}
                   onClick={(event) => {
-                    event.preventDefault();
-                    pushCustomerPath(item.href);
+                    navigateCustomerPathFromClick(event, item.href);
                   }}
                 >
                   <span

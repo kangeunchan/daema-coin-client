@@ -1,1 +1,9 @@
-export { WalletOverview } from "./WalletOverview";
+export {
+  WalletAssetLabel,
+  WalletAssetSlide,
+  WalletAssetValue,
+  WalletBenefitLink,
+  WalletHistoryLink,
+  WalletOverview,
+  WalletPaginationDots,
+} from "./WalletOverview";

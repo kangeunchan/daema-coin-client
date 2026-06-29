@@ -45,6 +45,7 @@ export type RecentTransaction = {
 };
 
 export type RankingEntry = {
+  avatarUrl?: string;
   name: string;
   points: number;
   rank: number;

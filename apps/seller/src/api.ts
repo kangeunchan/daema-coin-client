@@ -1,29 +1,11 @@
-export class SellerApiError extends Error {
-  readonly code: string | undefined;
-  readonly status: number;
+import { JsonApiError, requestJsonApi } from "@daema/shared";
+import type { JsonApiRequestOptions } from "@daema/shared";
 
+export class SellerApiError extends JsonApiError {
   constructor(message: string, status: number, code?: string) {
-    super(message);
-    this.code = code;
-    this.name = "SellerApiError";
-    this.status = status;
+    super(message, status, { code, name: "SellerApiError" });
   }
 }
-
-type ApiEnvelope<TResponse> = {
-  data: TResponse;
-};
-
-type ApiErrorEnvelope = {
-  error?: {
-    code?: string;
-    message?: string;
-  };
-};
-
-type ApiRequestOptions = Omit<RequestInit, "body"> & {
-  body?: unknown;
-};
 
 export type SellerMe = {
   boothId?: string;
@@ -63,57 +45,18 @@ export function isSellerApiEnabled() {
   return sellerApiBaseUrl.length > 0;
 }
 
-async function sellerApiRequest<TResponse>(path: string, options: ApiRequestOptions = {}) {
+async function sellerApiRequest<TResponse>(path: string, options: JsonApiRequestOptions = {}) {
   if (!sellerApiBaseUrl) {
     throw new SellerApiError("Seller API base URL is not configured.", 0);
   }
 
-  const { body, ...requestOptions } = options;
-  const headers = new Headers(options.headers);
-
-  if (!headers.has("Accept")) {
-    headers.set("Accept", "application/json");
-  }
-
-  if (body !== undefined && !headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
-  }
-
-  const requestInit: RequestInit = {
-    ...requestOptions,
-    credentials: "include",
-    headers,
-  };
-
-  if (body !== undefined) {
-    requestInit.body = JSON.stringify(body);
-  }
-
-  const response = await fetch(`${sellerApiBaseUrl}${path}`, requestInit);
-  const responseText = await response.text();
-  let payload: unknown;
-
-  try {
-    payload = responseText ? JSON.parse(responseText) : undefined;
-  } catch {
-    payload = undefined;
-  }
-
-  if (!response.ok) {
-    const error = (payload as ApiErrorEnvelope | undefined)?.error;
-
-    throw new SellerApiError(
-      error?.message || response.statusText || "Seller API request failed.",
-      response.status,
-      error?.code,
-    );
-  }
-
-  if (payload && typeof payload === "object" && "data" in payload) {
-    return (payload as ApiEnvelope<TResponse>).data;
-  }
-
-  return payload as TResponse;
+  return requestJsonApi<TResponse, SellerApiError>({
+    baseUrl: sellerApiBaseUrl,
+    createError: ({ code, message, status }) => new SellerApiError(message, status, code),
+    defaultErrorMessage: "Seller API request failed.",
+    options,
+    path,
+  });
 }
 
 export async function loginSeller(loginId: string, password: string) {
