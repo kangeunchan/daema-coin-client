@@ -4,6 +4,7 @@ import { FaGithub } from "react-icons/fa6";
 
 import { pushCustomerPath } from "../../shared/lib/customerNavigation";
 import type { GithubAuthenticationResult } from "../../shared/api/auth";
+import { CustomerApiError } from "../../shared/api/client";
 import { LoginCoinCanvas } from "./ui/LoginCoinCanvas";
 
 type CustomerLoginPageProps = {
@@ -84,8 +85,13 @@ export function CustomerLoginPage({
               .then(() => {
                 pushCustomerPath("/");
               })
-              .catch(() => {
-                setErrorMessage("학생 정보를 저장하지 못했어요.");
+              .catch((error: unknown) => {
+                setErrorMessage(
+                  error instanceof CustomerApiError &&
+                    error.code === "STUDENT_NUMBER_ALREADY_REGISTERED"
+                    ? "이미 등록된 학번이에요."
+                    : "학생 정보를 저장하지 못했어요.",
+                );
               })
               .finally(() => {
                 setIsProfileLoading(false);
