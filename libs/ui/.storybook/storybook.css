@@ -93,3 +93,26 @@ body {
   bottom: 0;
   left: 0;
 }
+
+.daema-customer-story__frame--worldcup {
+  width: min(100%, 390px);
+  height: 844px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.daema-customer-story__frame--worldcup::-webkit-scrollbar {
+  display: none;
+}
+
+.daema-customer-story__frame--worldcup .customer-points-page {
+  padding-bottom: 96px;
+}
+
+.daema-customer-story__bottom--worldcup {
+  position: sticky;
+  z-index: 20;
+  bottom: 0;
+}
