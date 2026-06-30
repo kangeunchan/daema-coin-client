@@ -40,6 +40,7 @@ import {
 } from "./model/commitPoints";
 import type { CommitChartDatum } from "./model/commitPoints";
 import {
+  allowsWorldcupDrawPrediction,
   buildSoccerLineupTeam,
   getEmptyWorldcupLineup,
   getWorldcupDayKey,
@@ -633,6 +634,7 @@ function WorldcupPointContent({ matchDays }: { matchDays: readonly WorldcupMatch
 function WorldcupMatchDetailContent({ detail }: { detail: WorldcupMatchDetail }) {
   const { day, match, matchId } = detail;
   const isApiMode = isCustomerApiEnabled();
+  const allowsDrawPrediction = allowsWorldcupDrawPrediction(match);
   const matchTime = match.time ?? "경기 종료";
   const [apiMetrics, setApiMetrics] = useState<WorldcupMatchMetric[] | undefined>(() =>
     isApiMode ? [] : undefined,
@@ -657,6 +659,8 @@ function WorldcupMatchDetailContent({ detail }: { detail: WorldcupMatchDetail })
   const [draftPrediction, setDraftPrediction] = useState<CustomerWorldcupPredictionPick | null>(
     null,
   );
+  const effectiveDraftPrediction =
+    draftPrediction === "draw" && !allowsDrawPrediction ? null : draftPrediction;
   const [canPredict, setCanPredict] = useState(match.status === "예정");
   const [canCancelPrediction, setCanCancelPrediction] = useState(false);
   const [selectedStakeAmount, setSelectedStakeAmount] = useState<number | null>(null);
@@ -752,7 +756,7 @@ function WorldcupMatchDetailContent({ detail }: { detail: WorldcupMatchDetail })
     pick: CustomerWorldcupPredictionPick,
     stakeAmount: number,
   ) => {
-    if (!canPredict) {
+    if (!canPredict || (pick === "draw" && !allowsDrawPrediction)) {
       return;
     }
     if (!isCustomerApiEnabled()) {
@@ -884,8 +888,9 @@ function WorldcupMatchDetailContent({ detail }: { detail: WorldcupMatchDetail })
       />
 
       <WorldcupFloatingPrediction
+        allowsDrawPrediction={allowsDrawPrediction}
         canCancel={canCancelPrediction}
-        draftPick={draftPrediction}
+        draftPick={effectiveDraftPrediction}
         disabled={isPredictionSubmitting || (!canPredict && selectedPrediction === null)}
         match={match}
         onCancel={handlePredictionCancel}
@@ -1111,6 +1116,7 @@ function WorldcupPlayerTable({
 }
 
 function WorldcupFloatingPrediction({
+  allowsDrawPrediction,
   canCancel,
   draftPick,
   disabled,
@@ -1123,6 +1129,7 @@ function WorldcupFloatingPrediction({
   selectedStakeAmount,
   stakeAmount,
 }: {
+  allowsDrawPrediction: boolean;
   canCancel: boolean;
   draftPick: CustomerWorldcupPredictionPick | null;
   disabled: boolean;
@@ -1136,6 +1143,7 @@ function WorldcupFloatingPrediction({
   stakeAmount: string;
 }) {
   const activePick = selectedPick ?? draftPick;
+  const visibleActivePick = activePick === "draw" && !allowsDrawPrediction ? null : activePick;
   const isExpanded = draftPick !== null && selectedPick === null;
   const isSelected = selectedPick !== null;
   const parsedStakeAmount = Math.max(0, Number.parseInt(stakeAmount, 10) || 0);
@@ -1146,9 +1154,10 @@ function WorldcupFloatingPrediction({
     <div
       className="customer-points-worldcup-floating-prediction"
       aria-label="승부예측 선택"
+      data-allows-draw={allowsDrawPrediction ? "true" : "false"}
       data-expanded={isExpanded ? "true" : "false"}
       data-has-cancel={canCancel && isSelected ? "true" : "false"}
-      data-selected={activePick ?? "none"}
+      data-selected={visibleActivePick ?? "none"}
     >
       <button
         aria-pressed={activePick === "home"}
@@ -1161,17 +1170,19 @@ function WorldcupFloatingPrediction({
       >
         {match.home.name}
       </button>
-      <button
-        aria-pressed={activePick === "draw"}
-        data-pick="draw"
-        disabled={disabled || selectedPick !== null}
-        onClick={() => {
-          onDraftPick("draw");
-        }}
-        type="button"
-      >
-        무승부
-      </button>
+      {allowsDrawPrediction ? (
+        <button
+          aria-pressed={activePick === "draw"}
+          data-pick="draw"
+          disabled={disabled || selectedPick !== null}
+          onClick={() => {
+            onDraftPick("draw");
+          }}
+          type="button"
+        >
+          무승부
+        </button>
+      ) : null}
       <button
         aria-pressed={activePick === "away"}
         data-pick="away"
