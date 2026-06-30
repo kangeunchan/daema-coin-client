@@ -46,6 +46,13 @@ export type WorldcupMatchDetail = {
   matchId: string;
 };
 
+const worldcupKnockoutRoundPattern =
+  /(?:round of (?:32|16)|quarter[- ]?finals?|semi[- ]?finals?|third[- ]place|3rd place|final|32강|16강|8강|준준결승|준결승|결승|3위 결정전|3[·./-]4위전|토너먼트)/i;
+
+export function allowsWorldcupDrawPrediction(match: Pick<WorldcupMatch, "subtitle">) {
+  return !worldcupKnockoutRoundPattern.test(match.subtitle.trim());
+}
+
 export type WorldcupPredictionStats = {
   away: number;
   draw: number;

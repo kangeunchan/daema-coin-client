@@ -4028,6 +4028,20 @@ button {
   gap: 0;
 }
 
+.customer-points-worldcup-floating-prediction[data-allows-draw="false"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.customer-points-worldcup-floating-prediction[data-allows-draw="false"][data-selected="home"] {
+  grid-template-columns: minmax(0, 1fr) 0fr;
+  gap: 0;
+}
+
+.customer-points-worldcup-floating-prediction[data-allows-draw="false"][data-selected="away"] {
+  grid-template-columns: 0fr minmax(0, 1fr);
+  gap: 0;
+}
+
 .customer-points-worldcup-floating-prediction > button {
   position: relative;
   overflow: hidden;

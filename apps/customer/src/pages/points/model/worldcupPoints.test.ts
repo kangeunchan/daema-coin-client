@@ -1,6 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 
 import {
+  allowsWorldcupDrawPrediction,
   buildWorldcupPlayersFromFormation,
   getWorldcupMatchDetail,
   getWorldcupMatchId,
@@ -46,6 +47,22 @@ test("maps worldcup match-day dtos without leaking null scores", () => {
   expect(day.matches[0]?.status).toBe("진행중");
   expect(day.matches[0]?.away.score).toBeUndefined();
   expect(day.matches[0]?.home.score).toBe(1);
+});
+
+test.each([
+  ["Group Stage - 1", true],
+  ["J조 예선", true],
+  ["Round of 32", false],
+  ["Round of 16", false],
+  ["Quarter-finals", false],
+  ["Semi-finals", false],
+  ["3rd Place Final", false],
+  ["Final", false],
+  ["16강", false],
+  ["준결승", false],
+  ["결승", false],
+])("determines draw availability for %s", (subtitle, expected) => {
+  expect(allowsWorldcupDrawPrediction({ subtitle })).toBe(expected);
 });
 
 test("resolves static match detail ids", () => {
