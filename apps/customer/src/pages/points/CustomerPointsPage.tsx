@@ -23,9 +23,7 @@ import {
   fetchCustomerWorldcupStats,
 } from "../../shared/api/worldcup";
 import type { CustomerWorldcupPredictionPick } from "../../shared/api/worldcup";
-import {
-  navigateCustomerPathFromClick,
-} from "../../shared/lib/customerNavigation";
+import { navigateCustomerPathFromClick } from "../../shared/lib/customerNavigation";
 import { useCustomerPathname } from "../../shared/lib/useCustomerPathname";
 import { AppHeader } from "../../widgets/app-header";
 import { RecentTransactions } from "../../widgets/recent-transactions";
@@ -246,7 +244,10 @@ export function CustomerPointsPage({ activeTabId }: CustomerPointsPageProps) {
     <>
       <AppHeader />
 
-      <main className="customer-points-page" aria-label="커밋 잔디">
+      <main
+        className={`customer-points-page${selectedWorldcupMatch ? " customer-points-page--worldcup-detail" : ""}`}
+        aria-label="커밋 잔디"
+      >
         {effectiveActiveTabId === "daily" ? (
           isCommitLoading ? (
             <DailyCommitLoadingContent />
@@ -631,7 +632,7 @@ function WorldcupPointContent({ matchDays }: { matchDays: readonly WorldcupMatch
   );
 }
 
-function WorldcupMatchDetailContent({ detail }: { detail: WorldcupMatchDetail }) {
+export function WorldcupMatchDetailContent({ detail }: { detail: WorldcupMatchDetail }) {
   const { day, match, matchId } = detail;
   const isApiMode = isCustomerApiEnabled();
   const allowsDrawPrediction = allowsWorldcupDrawPrediction(match);
@@ -672,6 +673,7 @@ function WorldcupMatchDetailContent({ detail }: { detail: WorldcupMatchDetail })
   const homeLineup = apiLineups?.home ?? getWorldcupLineup(match.home);
   const awayLineup = apiLineups?.away ?? getWorldcupLineup(match.away);
   const matchMetrics = apiMetrics ?? worldcupMatchMetrics;
+  const [activeDetailTab, setActiveDetailTab] = useState<"lineup" | "players" | "stats">("stats");
 
   useEffect(() => {
     if (!isCustomerApiEnabled()) {
@@ -825,82 +827,128 @@ function WorldcupMatchDetailContent({ detail }: { detail: WorldcupMatchDetail })
 
   return (
     <div className="customer-points-worldcup-detail">
-      <Surface asChild className="customer-points-worldcup-detail-card" padding="none">
-        <section aria-labelledby="customer-worldcup-detail-title">
-          <h1 id="customer-worldcup-detail-title">
-            {match.home.name} vs {match.away.name}
-          </h1>
+      <section className="customer-points-worldcup-match-experience" aria-label="경기 및 승부예측">
+        <Surface asChild className="customer-points-worldcup-detail-card" padding="none">
+          <section aria-labelledby="customer-worldcup-detail-title" data-status={match.status}>
+            <header className="customer-points-worldcup-detail-card__header">
+              <div>
+                <span>
+                  {day.date} ({day.label}) · {match.subtitle}
+                </span>
+                <h1 id="customer-worldcup-detail-title">
+                  {match.home.name} vs {match.away.name}
+                </h1>
+              </div>
+              <strong>{match.status}</strong>
+            </header>
 
-          <div className="customer-points-worldcup-detail-match">
-            <div className="customer-points-worldcup-team customer-points-worldcup-team--home">
-              <span className="customer-points-worldcup-team__name">{match.home.name}</span>
-              <WorldcupFlag team={match.home} />
+            <div className="customer-points-worldcup-detail-match">
+              <div className="customer-points-worldcup-detail-team">
+                <WorldcupFlag team={match.home} />
+                <strong>{match.home.name}</strong>
+              </div>
+              <div className="customer-points-worldcup-detail-score">
+                <strong>
+                  {match.home.score !== undefined && match.away.score !== undefined
+                    ? `${match.home.score} : ${match.away.score}`
+                    : (match.time ?? "VS")}
+                </strong>
+                <span>{match.status === "종료" ? "경기 종료" : "킥오프 · KST"}</span>
+              </div>
+              <div className="customer-points-worldcup-detail-team">
+                <WorldcupFlag team={match.away} />
+                <strong>{match.away.name}</strong>
+              </div>
             </div>
-            <strong className="customer-points-worldcup-score">{match.home.score ?? "-"}</strong>
-            <div className="customer-points-worldcup-status" data-status={match.status}>
-              <span>{match.status}</span>
-              <small>{match.subtitle}</small>
-            </div>
-            <strong className="customer-points-worldcup-score">{match.away.score ?? "-"}</strong>
-            <div className="customer-points-worldcup-team">
-              <WorldcupFlag team={match.away} />
-              <span className="customer-points-worldcup-team__name">{match.away.name}</span>
-            </div>
-          </div>
 
-          <dl className="customer-points-worldcup-detail__info">
-            <div>
-              <dt>날짜</dt>
-              <dd>
-                {day.date}. ({day.label})
-              </dd>
-            </div>
-            <div>
-              <dt>경기 시간</dt>
-              <dd>{matchTime}</dd>
-            </div>
-            <div>
-              <dt>구분</dt>
-              <dd>{match.subtitle}</dd>
-            </div>
-          </dl>
-        </section>
-      </Surface>
+            <dl className="customer-points-worldcup-detail__info">
+              <div>
+                <dt>경기 시간</dt>
+                <dd>{matchTime}</dd>
+              </div>
+              <div>
+                <dt>예측 마감</dt>
+                <dd>킥오프 전</dd>
+              </div>
+            </dl>
+          </section>
+        </Surface>
 
-      <WorldcupPredictionPayoutCard amount={totalPredictionStakeAmount} />
+        <WorldcupFloatingPrediction
+          allowsDrawPrediction={allowsDrawPrediction}
+          canCancel={canCancelPrediction}
+          draftPick={effectiveDraftPrediction}
+          disabled={isPredictionSubmitting || (!canPredict && selectedPrediction === null)}
+          match={match}
+          onCancel={handlePredictionCancel}
+          onDraftPick={setDraftPrediction}
+          onStakeAmountChange={setPredictionStakeAmount}
+          onSubmit={handlePredictionSubmit}
+          selectedPick={selectedPrediction}
+          selectedStakeAmount={selectedStakeAmount}
+          stakeAmount={predictionStakeAmount}
+        />
 
-      <WorldcupPredictionStatsCard match={match} stats={predictionStats} />
+        <div className="customer-points-worldcup-prediction-insights">
+          <WorldcupPredictionPayoutCard amount={totalPredictionStakeAmount} />
+          <WorldcupPredictionStatsCard match={match} stats={predictionStats} />
+        </div>
+      </section>
 
-      <WorldcupMatchStatsCard match={match} metrics={matchMetrics} />
+      <section className="customer-points-worldcup-data-card" aria-label="경기 상세 정보">
+        <div className="customer-points-worldcup-detail-tabs" role="tablist" aria-label="경기 정보">
+          <button
+            aria-selected={activeDetailTab === "stats"}
+            onClick={() => {
+              setActiveDetailTab("stats");
+            }}
+            role="tab"
+            type="button"
+          >
+            경기 지표
+          </button>
+          <button
+            aria-selected={activeDetailTab === "lineup"}
+            onClick={() => {
+              setActiveDetailTab("lineup");
+            }}
+            role="tab"
+            type="button"
+          >
+            라인업
+          </button>
+          <button
+            aria-selected={activeDetailTab === "players"}
+            onClick={() => {
+              setActiveDetailTab("players");
+            }}
+            role="tab"
+            type="button"
+          >
+            선수
+          </button>
+        </div>
 
-      <WorldcupLineupCard
-        awayLineup={awayLineup}
-        awayTeam={match.away}
-        homeLineup={homeLineup}
-        homeTeam={match.home}
-      />
-
-      <WorldcupPlayerTable
-        awayLineup={awayLineup}
-        awayTeam={match.away}
-        homeLineup={homeLineup}
-        homeTeam={match.home}
-      />
-
-      <WorldcupFloatingPrediction
-        allowsDrawPrediction={allowsDrawPrediction}
-        canCancel={canCancelPrediction}
-        draftPick={effectiveDraftPrediction}
-        disabled={isPredictionSubmitting || (!canPredict && selectedPrediction === null)}
-        match={match}
-        onCancel={handlePredictionCancel}
-        onDraftPick={setDraftPrediction}
-        onStakeAmountChange={setPredictionStakeAmount}
-        onSubmit={handlePredictionSubmit}
-        selectedPick={selectedPrediction}
-        selectedStakeAmount={selectedStakeAmount}
-        stakeAmount={predictionStakeAmount}
-      />
+        {activeDetailTab === "stats" ? (
+          <WorldcupMatchStatsCard match={match} metrics={matchMetrics} />
+        ) : null}
+        {activeDetailTab === "lineup" ? (
+          <WorldcupLineupCard
+            awayLineup={awayLineup}
+            awayTeam={match.away}
+            homeLineup={homeLineup}
+            homeTeam={match.home}
+          />
+        ) : null}
+        {activeDetailTab === "players" ? (
+          <WorldcupPlayerTable
+            awayLineup={awayLineup}
+            awayTeam={match.away}
+            homeLineup={homeLineup}
+            homeTeam={match.home}
+          />
+        ) : null}
+      </section>
     </div>
   );
 }
@@ -910,7 +958,7 @@ function WorldcupPredictionPayoutCard({ amount }: { amount: number }) {
     <Surface asChild className="customer-points-worldcup-payout-card" padding="none">
       <section aria-labelledby="customer-worldcup-payout-title">
         <div>
-          <h2 id="customer-worldcup-payout-title">총 배당금</h2>
+          <h2 id="customer-worldcup-payout-title">현재 모인 포인트</h2>
         </div>
         <strong>{amount.toLocaleString("ko-KR")}P</strong>
       </section>
@@ -928,23 +976,31 @@ function WorldcupPredictionStatsCard({
   return (
     <Surface asChild className="customer-points-worldcup-prediction-card" padding="none">
       <section aria-labelledby="customer-worldcup-prediction-title">
-        <h2 id="customer-worldcup-prediction-title">승부예측 통계</h2>
+        <header className="customer-points-worldcup-prediction-card__header">
+          <div>
+            <h2 id="customer-worldcup-prediction-title">다른 사람들은 이렇게 예측했어요</h2>
+          </div>
+          <small>실시간</small>
+        </header>
+        <div className="customer-points-worldcup-prediction-bar" aria-hidden="true">
+          <span style={{ width: `${stats.home}%` }} />
+          <span style={{ width: `${stats.draw}%` }} />
+          <span style={{ width: `${stats.away}%` }} />
+        </div>
         <div className="customer-points-worldcup-prediction-stats">
           <div>
             <WorldcupFlag team={match.home} />
-            <strong>{match.home.name}</strong>
-            <span>{stats.home}%</span>
+            <span>{match.home.name}</span>
+            <strong>{stats.home}%</strong>
           </div>
           <div className="customer-points-worldcup-prediction-stats__draw">
-            <strong>
-              {match.home.score ?? "-"} : {match.away.score ?? "-"}
-            </strong>
-            <span>무승부 {stats.draw}%</span>
+            <span>무승부</span>
+            <strong>{stats.draw}%</strong>
           </div>
           <div>
             <WorldcupFlag team={match.away} />
-            <strong>{match.away.name}</strong>
-            <span>{stats.away}%</span>
+            <span>{match.away.name}</span>
+            <strong>{stats.away}%</strong>
           </div>
         </div>
       </section>
@@ -1159,41 +1215,80 @@ function WorldcupFloatingPrediction({
       data-has-cancel={canCancel && isSelected ? "true" : "false"}
       data-selected={visibleActivePick ?? "none"}
     >
-      <button
-        aria-pressed={activePick === "home"}
-        data-pick="home"
-        disabled={disabled || selectedPick !== null}
-        onClick={() => {
-          onDraftPick("home");
-        }}
-        type="button"
-      >
-        {match.home.name}
-      </button>
-      {allowsDrawPrediction ? (
+      <div className="customer-points-worldcup-floating-prediction__header">
+        <strong>{isSelected ? "예측이 완료됐어요" : "어느 팀이 이길까요?"}</strong>
+        <span>
+          {isSelected
+            ? `${activeLabel}${selectedStakeAmount ? ` · ${selectedStakeAmount.toLocaleString("ko-KR")}P` : ""}`
+            : "한 팀을 골라주세요. 킥오프 전까지 바꿀 수 있어요"}
+        </span>
+      </div>
+      <div className="customer-points-worldcup-floating-prediction__choices">
         <button
-          aria-pressed={activePick === "draw"}
-          data-pick="draw"
+          aria-pressed={activePick === "home"}
+          data-pick="home"
           disabled={disabled || selectedPick !== null}
           onClick={() => {
-            onDraftPick("draw");
+            onDraftPick("home");
           }}
           type="button"
         >
-          무승부
+          <WorldcupFlag team={match.home} />
+          <span>
+            <strong>{match.home.name}</strong>
+            <small>승리</small>
+          </span>
+          <span className="customer-points-worldcup-floating-prediction__check" aria-hidden="true">
+            ✓
+          </span>
         </button>
-      ) : null}
-      <button
-        aria-pressed={activePick === "away"}
-        data-pick="away"
-        disabled={disabled || selectedPick !== null}
-        onClick={() => {
-          onDraftPick("away");
-        }}
-        type="button"
-      >
-        {match.away.name}
-      </button>
+        {allowsDrawPrediction ? (
+          <button
+            aria-pressed={activePick === "draw"}
+            data-pick="draw"
+            disabled={disabled || selectedPick !== null}
+            onClick={() => {
+              onDraftPick("draw");
+            }}
+            type="button"
+          >
+            <span
+              className="customer-points-worldcup-floating-prediction__draw-mark"
+              aria-hidden="true"
+            >
+              무
+            </span>
+            <span>
+              <strong>무승부</strong>
+              <small>두 팀이 비겨요</small>
+            </span>
+            <span
+              className="customer-points-worldcup-floating-prediction__check"
+              aria-hidden="true"
+            >
+              ✓
+            </span>
+          </button>
+        ) : null}
+        <button
+          aria-pressed={activePick === "away"}
+          data-pick="away"
+          disabled={disabled || selectedPick !== null}
+          onClick={() => {
+            onDraftPick("away");
+          }}
+          type="button"
+        >
+          <WorldcupFlag team={match.away} />
+          <span>
+            <strong>{match.away.name}</strong>
+            <small>승리</small>
+          </span>
+          <span className="customer-points-worldcup-floating-prediction__check" aria-hidden="true">
+            ✓
+          </span>
+        </button>
+      </div>
       <form
         className="customer-points-worldcup-floating-prediction__stake"
         onSubmit={(event) => {
@@ -1205,9 +1300,13 @@ function WorldcupFloatingPrediction({
         }}
       >
         <label>
-          <span>{activeLabel} 투표 금액</span>
+          <span className="customer-points-worldcup-floating-prediction__stake-label">
+            <strong>예측할 포인트</strong>
+            <small>최소 1P</small>
+          </span>
           <div className="customer-points-worldcup-floating-prediction__input-wrap">
             <input
+              aria-describedby="customer-worldcup-prediction-notice"
               inputMode="numeric"
               min={1}
               onChange={(event) => {
@@ -1220,8 +1319,29 @@ function WorldcupFloatingPrediction({
             <small>P</small>
           </div>
         </label>
+        <div className="customer-points-worldcup-floating-prediction__quick-amounts">
+          {[100, 500, 1000].map((amount) => (
+            <button
+              aria-pressed={parsedStakeAmount === amount}
+              key={amount}
+              onClick={() => {
+                onStakeAmountChange(String(amount));
+              }}
+              type="button"
+            >
+              {amount.toLocaleString("ko-KR")}P
+            </button>
+          ))}
+        </div>
+        <p
+          className="customer-points-worldcup-floating-prediction__notice"
+          id="customer-worldcup-prediction-notice"
+        >
+          <span aria-hidden="true">i</span>
+          경기가 취소되면 사용한 포인트는 자동으로 돌아와요
+        </p>
         <button disabled={disabled || parsedStakeAmount <= 0} type="submit">
-          투표하기
+          {parsedStakeAmount.toLocaleString("ko-KR")}P 예측하기
         </button>
       </form>
       {isSelected ? (
