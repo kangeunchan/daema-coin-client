@@ -94,7 +94,8 @@ body {
   left: 0;
 }
 
-.daema-customer-story__frame--worldcup {
+.daema-customer-story__frame--worldcup,
+.daema-customer-story__frame--points {
   width: min(100%, 390px);
   height: 844px;
   overflow-x: hidden;
@@ -103,15 +104,18 @@ body {
   scrollbar-width: none;
 }
 
-.daema-customer-story__frame--worldcup::-webkit-scrollbar {
+.daema-customer-story__frame--worldcup::-webkit-scrollbar,
+.daema-customer-story__frame--points::-webkit-scrollbar {
   display: none;
 }
 
-.daema-customer-story__frame--worldcup .customer-points-page {
+.daema-customer-story__frame--worldcup .customer-points-page,
+.daema-customer-story__frame--points .customer-points-page {
   padding-bottom: 96px;
 }
 
-.daema-customer-story__bottom--worldcup {
+.daema-customer-story__bottom--worldcup,
+.daema-customer-story__bottom--points {
   position: sticky;
   z-index: 20;
   bottom: 0;

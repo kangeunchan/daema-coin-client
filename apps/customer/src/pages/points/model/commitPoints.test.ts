@@ -5,6 +5,7 @@ import {
   commitActivity,
   inferCommitLevel,
   mapCommitActivityDto,
+  mapCommitRewardSummaryDto,
   mapCommitStatsDtos,
   mapCommitTransactionDto,
 } from "./commitPoints";
@@ -15,8 +16,10 @@ afterEach(() => {
 
 test("creates the static commit activity window", () => {
   expect(commitActivity).toHaveLength(ACTIVITY_DAY_COUNT);
-  expect(commitActivity[0]?.date).toBe("2026-05-20");
-  expect(commitActivity.at(-1)?.date).toBe("2026-06-23");
+  expect(commitActivity[0]?.date).toBe("2026-05-28");
+  expect(commitActivity.at(-1)?.date).toBe("2026-07-01");
+  expect(commitActivity.at(-6)?.count).toBe(0);
+  expect(commitActivity.slice(-5).every((item) => item.count >= 10)).toBe(true);
 });
 
 test("maps commit activity dto with clamped levels", () => {
@@ -60,4 +63,51 @@ test("maps commit transactions for the recent list", () => {
     amount: "+100 P",
     meta: "커밋 ㅣ daema · refactor points",
   });
+});
+
+test("maps commit reward milestones with API status and inferred defaults", () => {
+  expect(
+    mapCommitRewardSummaryDto({
+      committedToday: true,
+      currentStreakDays: 8,
+      dailyCommitGoal: 10,
+      longestStreakDays: 12,
+      milestones: [
+        { days: 7, rewardAmount: 5_000, status: "paid" },
+        { days: 14, rewardAmount: 15_000 },
+      ],
+      todayCommitCount: 10,
+      totalRewardAmount: 5_000,
+    }),
+  ).toEqual({
+    committedToday: true,
+    currentStreakDays: 8,
+    dailyCommitGoal: 10,
+    longestStreakDays: 12,
+    milestones: [
+      {
+        days: 7,
+        rewardAmount: 5_000,
+        status: "paid",
+      },
+      {
+        days: 14,
+        rewardAmount: 15_000,
+        status: "locked",
+      },
+    ],
+    todayCommitCount: 10,
+    totalRewardAmount: 5_000,
+  });
+});
+
+test("does not qualify a day below the 10 commit goal", () => {
+  expect(
+    mapCommitRewardSummaryDto({
+      committedToday: true,
+      currentStreakDays: 4,
+      dailyCommitGoal: 10,
+      todayCommitCount: 9,
+    }).committedToday,
+  ).toBe(false);
 });

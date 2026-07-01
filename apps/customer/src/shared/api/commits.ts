@@ -28,6 +28,25 @@ export type CustomerCommitTransactionDto = CustomerLedgerTransactionDto & {
   title?: string;
 };
 
+export type CustomerCommitRewardMilestoneDto = {
+  achievedAt?: string;
+  days: number;
+  paidAt?: string;
+  rewardAmount: number;
+  status?: "earned" | "locked" | "paid";
+};
+
+export type CustomerCommitRewardSummaryDto = {
+  committedToday?: boolean;
+  currentStreakDays?: number;
+  dailyCommitGoal?: number;
+  lastCommittedAt?: string;
+  longestStreakDays?: number;
+  milestones?: CustomerCommitRewardMilestoneDto[];
+  todayCommitCount?: number;
+  totalRewardAmount?: number;
+};
+
 function formatDateQuery(date: Date) {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
@@ -71,5 +90,11 @@ export async function fetchCustomerCommitTransactions(limit = 6) {
 
   return customerApiRequest<CustomerCommitTransactionDto[]>(
     `/customer/points/commit-transactions?${params.toString()}`,
+  );
+}
+
+export async function fetchCustomerCommitRewardSummary() {
+  return customerApiRequest<CustomerCommitRewardSummaryDto>(
+    "/customer/points/commit-reward-summary",
   );
 }

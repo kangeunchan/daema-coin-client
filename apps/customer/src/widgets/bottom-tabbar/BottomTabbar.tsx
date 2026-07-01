@@ -60,12 +60,7 @@ export function PrimaryTabIndicator() {
   return <span aria-hidden="true" className="customer-tabbar__indicator" />;
 }
 
-export function PrimaryTabItem({
-  isActive,
-  isScrolling,
-  onTabChange,
-  tab,
-}: PrimaryTabItemProps) {
+export function PrimaryTabItem({ isActive, isScrolling, onTabChange, tab }: PrimaryTabItemProps) {
   const { icon: Icon, label } = tab;
 
   return (
@@ -209,7 +204,7 @@ export function BottomTabbar({
             <PointTabItem
               active={activePointTab === "daily"}
               icon={CalendarDaysIcon}
-              label="일일"
+              label="커밋"
               onClick={() => onPointTabChange("daily")}
             />
             <PointTabItem
