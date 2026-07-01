@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-import { ActivityCalendar } from "react-activity-calendar";
+import type { CSSProperties } from "react";
 import type { Activity } from "react-activity-calendar";
 import { AR, AT, DZ, FR, IQ, JO, KR, MX, NO, SN } from "country-flag-icons/react/3x2";
+import { CheckIcon, GiftIcon, SparklesIcon, TrophyIcon } from "@heroicons/react/24/solid";
 import { Skeleton } from "@daema/ui/skeleton";
 import { Surface } from "@daema/ui/surface";
 import SoccerLineUp from "react-soccer-lineup";
-import { Bar, BarChart, Cell, LabelList, XAxis } from "recharts";
 
 import type { RecentTransaction } from "../../entities/customer-home";
 import { isCustomerApiEnabled } from "../../shared/api/client";
 import {
   fetchCustomerCommitActivity,
-  fetchCustomerCommitStats,
+  fetchCustomerCommitRewardSummary,
   fetchCustomerCommitTransactions,
 } from "../../shared/api/commits";
 import {
@@ -31,12 +31,13 @@ import {
   ACTIVITY_DAY_COUNT,
   commitActivity,
   commitHistoryTransactions,
+  commitRewardSummary,
+  emptyCommitRewardSummary,
   mapCommitActivityDto,
-  mapCommitStatsDtos,
+  mapCommitRewardSummaryDto,
   mapCommitTransactionDto,
-  monthlyCommitData,
 } from "./model/commitPoints";
-import type { CommitChartDatum } from "./model/commitPoints";
+import type { CommitRewardMilestone, CommitRewardSummary } from "./model/commitPoints";
 import {
   allowsWorldcupDrawPrediction,
   buildSoccerLineupTeam,
@@ -79,44 +80,9 @@ const worldcupFlagIcons = {
   SN,
 } satisfies Record<string, typeof KR>;
 
-type CommitBarLabelProps = {
-  data?: readonly CommitChartDatum[];
-  height?: number | string;
-  index?: number;
-  value?: number | string;
-  width?: number | string;
-  x?: number | string;
-  y?: number | string;
-};
-
 type CustomerPointsPageProps = {
   activeTabId: "daily" | "worldcup";
 };
-
-function CommitBarLabel({
-  data = monthlyCommitData,
-  index = 0,
-  value,
-  width = 0,
-  x = 0,
-  y = 0,
-}: CommitBarLabelProps) {
-  const centerX = Number(x) + Number(width) / 2;
-  const labelY = Math.max(18, Number(y) - 12);
-  const isCurrent = data[index]?.current;
-
-  return (
-    <text
-      className="customer-points-month-chart__label"
-      fill={isCurrent ? "#22a852" : "#94a3b8"}
-      textAnchor="middle"
-      x={centerX}
-      y={labelY}
-    >
-      <tspan x={centerX}>{value}</tspan>
-    </text>
-  );
-}
 
 export function CustomerPointsPage({ activeTabId }: CustomerPointsPageProps) {
   const isApiMode = isCustomerApiEnabled();
@@ -127,9 +93,9 @@ export function CustomerPointsPage({ activeTabId }: CustomerPointsPageProps) {
   const [apiCommitActivity, setApiCommitActivity] = useState<Activity[] | undefined>(() =>
     isApiMode ? [] : undefined,
   );
-  const [apiCommitStats, setApiCommitStats] = useState<CommitChartDatum[] | undefined>(() =>
-    isApiMode ? [] : undefined,
-  );
+  const [apiCommitRewardSummary, setApiCommitRewardSummary] = useState<
+    CommitRewardSummary | undefined
+  >(() => (isApiMode ? emptyCommitRewardSummary : undefined));
   const [apiCommitTransactions, setApiCommitTransactions] = useState<
     RecentTransaction[] | undefined
   >(() => (isApiMode ? [] : undefined));
@@ -190,15 +156,15 @@ export function CustomerPointsPage({ activeTabId }: CustomerPointsPageProps) {
             setApiCommitActivity([]);
           }
         }),
-      fetchCustomerCommitStats("month")
-        .then((stats) => {
+      fetchCustomerCommitRewardSummary()
+        .then((summary) => {
           if (!isCancelled) {
-            setApiCommitStats(mapCommitStatsDtos(stats));
+            setApiCommitRewardSummary(mapCommitRewardSummaryDto(summary));
           }
         })
         .catch(() => {
           if (!isCancelled) {
-            setApiCommitStats([]);
+            setApiCommitRewardSummary(emptyCommitRewardSummary);
           }
         }),
       fetchCustomerCommitTransactions(6)
@@ -227,7 +193,9 @@ export function CustomerPointsPage({ activeTabId }: CustomerPointsPageProps) {
     ? (apiWorldcupMatchDays ?? [])
     : normalizeWorldcupMatchDays(worldcupMatchDays);
   const commitActivitySource = isApiMode ? (apiCommitActivity ?? []) : commitActivity;
-  const monthlyCommitDataSource = isApiMode ? (apiCommitStats ?? []) : monthlyCommitData;
+  const commitRewardSummarySource = isApiMode
+    ? (apiCommitRewardSummary ?? emptyCommitRewardSummary)
+    : commitRewardSummary;
   const commitTransactionsSource = isApiMode
     ? (apiCommitTransactions ?? [])
     : commitHistoryTransactions;
@@ -245,8 +213,8 @@ export function CustomerPointsPage({ activeTabId }: CustomerPointsPageProps) {
       <AppHeader />
 
       <main
-        className={`customer-points-page${selectedWorldcupMatch ? " customer-points-page--worldcup-detail" : ""}`}
-        aria-label="커밋 잔디"
+        className={`customer-points-page${effectiveActiveTabId === "daily" ? " customer-points-page--commit" : ""}${selectedWorldcupMatch ? " customer-points-page--worldcup-detail" : ""}`}
+        aria-label={effectiveActiveTabId === "daily" ? "커밋 리워드" : "월드컵 승부예측"}
       >
         {effectiveActiveTabId === "daily" ? (
           isCommitLoading ? (
@@ -254,7 +222,7 @@ export function CustomerPointsPage({ activeTabId }: CustomerPointsPageProps) {
           ) : (
             <DailyCommitContent
               activity={commitActivitySource}
-              chartData={monthlyCommitDataSource}
+              rewardSummary={commitRewardSummarySource}
               transactions={commitTransactionsSource}
             />
           )
@@ -279,170 +247,211 @@ export function CustomerPointsPage({ activeTabId }: CustomerPointsPageProps) {
 
 function DailyCommitLoadingContent() {
   return (
-    <>
-      <Surface asChild className="customer-points-calendar-card" padding="none">
-        <section aria-label="커밋 활동 불러오는 중" aria-busy="true">
-          <div className="customer-points-loading-card customer-points-loading-card--calendar">
-            {Array.from({ length: 35 }, (_, index) => (
-              <Skeleton
-                aria-hidden="true"
-                className="customer-points-loading-card__grass"
-                key={index}
-                shape="block"
-              />
-            ))}
-          </div>
-        </section>
-      </Surface>
+    <div className="customer-commit-page" aria-busy="true" aria-label="커밋 리워드 불러오는 중">
+      <section className="customer-commit-hero customer-commit-hero--loading">
+        <Skeleton className="customer-commit-loading__status" shape="block" />
+        <Skeleton className="customer-commit-loading__title" shape="text" />
+        <Skeleton className="customer-commit-loading__subtitle" shape="text" />
+        <Skeleton className="customer-commit-loading__progress" shape="block" />
+        <div className="customer-commit-loading__metrics">
+          <Skeleton shape="block" />
+          <Skeleton shape="block" />
+        </div>
+      </section>
 
-      <Surface asChild className="customer-points-month-tabs-card" padding="none">
-        <section aria-label="커밋 차트 범위 불러오는 중" aria-busy="true">
-          <div className="customer-points-month-tabs">
-            {["월별", "주별", "일별"].map((label) => (
-              <Skeleton
-                aria-label={`${label} 탭 불러오는 중`}
-                className="customer-points-loading-card__tab"
-                key={label}
-                shape="block"
-              />
-            ))}
-          </div>
-        </section>
-      </Surface>
+      <section className="customer-commit-section">
+        <Skeleton className="customer-commit-loading__section-title" shape="text" />
+        <div className="customer-commit-loading__week">
+          {Array.from({ length: 7 }, (_, index) => (
+            <Skeleton key={index} shape="block" />
+          ))}
+        </div>
+      </section>
 
-      <Surface asChild className="customer-points-month-card" padding="none">
-        <section aria-label="커밋 통계 불러오는 중" aria-busy="true">
-          <div className="customer-points-loading-chart">
-            {[46, 72, 58, 90, 63, 78].map((height, index) => (
-              <div className="customer-points-loading-chart__bar" key={index}>
-                <Skeleton
-                  className="customer-points-loading-chart__bar-fill"
-                  shape="block"
-                  style={{ height: `${height}%` }}
-                />
-                <Skeleton className="customer-points-loading-chart__label" shape="text" />
-              </div>
-            ))}
-          </div>
-        </section>
-      </Surface>
-
-      <RecentTransactions title="최근 커밋" transactions={[]} />
-    </>
+      <section className="customer-commit-section">
+        <Skeleton className="customer-commit-loading__section-title" shape="text" />
+        <div className="customer-commit-loading__rewards">
+          <Skeleton shape="block" />
+          <Skeleton shape="block" />
+        </div>
+      </section>
+    </div>
   );
 }
 
-function DailyCommitContent({
+function formatCommitRewardAmount(amount: number) {
+  return `${amount.toLocaleString("ko-KR")}원`;
+}
+
+function getCommitRewardStatusLabel(milestone: CommitRewardMilestone, currentStreakDays: number) {
+  if (milestone.status === "paid") {
+    return "지급 완료";
+  }
+
+  if (milestone.status === "earned") {
+    return "달성 완료";
+  }
+
+  return `${Math.max(0, milestone.days - currentStreakDays)}일 남음`;
+}
+
+function getCommitWeekDays(activity: readonly Activity[], dailyCommitGoal: number) {
+  return activity.slice(-7).map((item, index, days) => {
+    const date = new Date(`${item.date}T12:00:00`);
+    const weekday = ["일", "월", "화", "수", "목", "금", "토"][date.getDay()] ?? "";
+
+    return {
+      ...item,
+      dayLabel: index === days.length - 1 ? "오늘" : weekday,
+      dateLabel: date.getDate(),
+      isComplete: item.count >= dailyCommitGoal,
+    };
+  });
+}
+
+export function DailyCommitContent({
   activity,
-  chartData,
+  rewardSummary,
   transactions,
 }: {
-  activity: Activity[];
-  chartData: readonly CommitChartDatum[];
+  activity: readonly Activity[];
+  rewardSummary: CommitRewardSummary;
   transactions: readonly RecentTransaction[];
 }) {
+  const maxMilestoneDays = Math.max(
+    ...rewardSummary.milestones.map((milestone) => milestone.days),
+    14,
+  );
+  const nextMilestone = rewardSummary.milestones.find((milestone) => milestone.status === "locked");
+  const progress = Math.min(100, (rewardSummary.currentStreakDays / maxMilestoneDays) * 100);
+  const progressStyle = { "--customer-commit-progress": `${progress}%` } as CSSProperties;
+  const weekDays = getCommitWeekDays(activity, rewardSummary.dailyCommitGoal);
+  const todayCommitProgress = Math.min(
+    rewardSummary.todayCommitCount,
+    rewardSummary.dailyCommitGoal,
+  );
+  const rewardMessage = nextMilestone
+    ? `${Math.max(0, nextMilestone.days - rewardSummary.currentStreakDays)}일만 더 하면 ${formatCommitRewardAmount(nextMilestone.rewardAmount)}을 받아요`
+    : "14일 연속 커밋 리워드까지 모두 달성했어요";
+
   return (
-    <>
-      <Surface asChild className="customer-points-calendar-card" padding="none">
-        <section aria-label="최근 커밋 활동">
-          <div className="customer-points-calendar">
-            {activity.length > 0 ? (
-              <ActivityCalendar
-                blockMargin={5}
-                blockRadius={4}
-                blockSize={14}
-                colorScheme="light"
-                data={activity}
-                fontSize={11}
-                labels={{
-                  legend: { less: "적음", more: "많음" },
-                  months: [
-                    "1월",
-                    "2월",
-                    "3월",
-                    "4월",
-                    "5월",
-                    "6월",
-                    "7월",
-                    "8월",
-                    "9월",
-                    "10월",
-                    "11월",
-                    "12월",
-                  ],
-                  totalCount: "{{count}} 커밋",
-                  weekdays: ["일", "월", "화", "수", "목", "금", "토"],
-                }}
-                showColorLegend={false}
-                showMonthLabels={false}
-                showTotalCount={false}
-                showWeekdayLabels={false}
-                theme={{
-                  light: ["#edf2f7", "#c9efd4", "#86d99a", "#3fb866", "#187a3a"],
-                }}
-                weekStart={0}
-              />
-            ) : (
-              <div className="customer-points-empty-state">
-                <span>커밋 기록이 없습니다</span>
-              </div>
-            )}
-          </div>
-        </section>
-      </Surface>
+    <div className="customer-commit-page">
+      <section className="customer-commit-hero" aria-labelledby="customer-commit-title">
+        <div
+          className="customer-commit-hero__status"
+          data-complete={rewardSummary.committedToday ? "true" : undefined}
+        >
+          <span aria-hidden="true">
+            {rewardSummary.committedToday ? <CheckIcon /> : <SparklesIcon />}
+          </span>
+          {rewardSummary.committedToday
+            ? `오늘 ${rewardSummary.dailyCommitGoal}/${rewardSummary.dailyCommitGoal} 커밋 완료`
+            : `오늘 ${todayCommitProgress}/${rewardSummary.dailyCommitGoal} 커밋`}
+        </div>
 
-      <Surface asChild className="customer-points-month-tabs-card" padding="none">
-        <section aria-label="커밋 차트 범위 선택">
-          <div className="customer-points-month-tabs" role="tablist" aria-label="커밋 차트 범위">
-            <button aria-selected="true" role="tab" type="button">
-              월별
-            </button>
-            <button aria-selected="false" role="tab" type="button">
-              주별
-            </button>
-            <button aria-selected="false" role="tab" type="button">
-              일별
-            </button>
-          </div>
-        </section>
-      </Surface>
+        <div className="customer-commit-hero__copy">
+          <span>연속 커밋</span>
+          <h1 id="customer-commit-title">
+            <strong>{rewardSummary.currentStreakDays}일째</strong> 이어가고 있어요
+          </h1>
+          <p>{rewardMessage}</p>
+        </div>
 
-      <Surface asChild className="customer-points-month-card" padding="none">
-        <section aria-label="월별 커밋 예측">
-          <div className="customer-points-month-chart">
-            {chartData.length > 0 ? (
-              <BarChart
-                data={chartData}
-                margin={{ bottom: 12, left: 8, right: 8, top: 28 }}
-                responsive
-                style={{ height: "100%", width: "100%" }}
-              >
-                <XAxis
-                  axisLine={false}
-                  dataKey="label"
-                  interval={0}
-                  tick={{ fill: "#4b5563", fontSize: 12, fontWeight: 700 }}
-                  tickLine={false}
-                />
-                <Bar dataKey="commits" radius={[6, 6, 6, 6]}>
-                  {chartData.map((item) => (
-                    <Cell
-                      fill={item.current ? "#22a852" : "#e5e7eb"}
-                      key={item.period ?? item.label}
-                    />
-                  ))}
-                  <LabelList content={<CommitBarLabel data={chartData} />} dataKey="commits" />
-                </Bar>
-              </BarChart>
-            ) : (
-              <div className="customer-points-empty-state">커밋 통계가 없습니다</div>
-            )}
+        <div className="customer-commit-progress" style={progressStyle}>
+          <div
+            aria-label={`${maxMilestoneDays}일 중 ${rewardSummary.currentStreakDays}일 달성`}
+            aria-valuemax={maxMilestoneDays}
+            aria-valuemin={0}
+            aria-valuenow={rewardSummary.currentStreakDays}
+            className="customer-commit-progress__track"
+            role="progressbar"
+          >
+            <span />
           </div>
-        </section>
-      </Surface>
+          <div className="customer-commit-progress__labels" aria-hidden="true">
+            {rewardSummary.milestones.map((milestone) => (
+              <span key={milestone.days}>
+                <strong>{milestone.days}일</strong>
+                {formatCommitRewardAmount(milestone.rewardAmount)}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <dl className="customer-commit-hero__metrics">
+          <div>
+            <dt>최고 기록</dt>
+            <dd>{rewardSummary.longestStreakDays}일</dd>
+          </div>
+          <div>
+            <dt>받은 리워드</dt>
+            <dd>{formatCommitRewardAmount(rewardSummary.totalRewardAmount)}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section className="customer-commit-section" aria-labelledby="customer-commit-week-title">
+        <div className="customer-commit-section__header">
+          <div>
+            <h2 id="customer-commit-week-title">이번 주 기록</h2>
+            <p>하루 10커밋을 모두 채우면 인정돼요</p>
+          </div>
+          <span>{weekDays.filter((day) => day.isComplete).length}/7</span>
+        </div>
+
+        {weekDays.length > 0 ? (
+          <ol className="customer-commit-week">
+            {weekDays.map((day) => (
+              <li data-complete={day.isComplete ? "true" : undefined} key={day.date}>
+                <span>{day.dayLabel}</span>
+                <strong>
+                  {day.isComplete ? <CheckIcon aria-label="커밋 완료" /> : day.dateLabel}
+                </strong>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <div className="customer-commit-empty">아직 이번 주 커밋 기록이 없어요</div>
+        )}
+      </section>
+
+      <section className="customer-commit-section" aria-labelledby="customer-commit-reward-title">
+        <div className="customer-commit-section__header">
+          <div>
+            <h2 id="customer-commit-reward-title">연속 커밋 리워드</h2>
+            <p>달성한 리워드는 자동으로 지급돼요</p>
+          </div>
+        </div>
+
+        <ol className="customer-commit-rewards">
+          {rewardSummary.milestones.map((milestone, index) => {
+            const isComplete = milestone.status === "earned" || milestone.status === "paid";
+            const RewardIcon = index === 0 ? GiftIcon : TrophyIcon;
+
+            return (
+              <li data-complete={isComplete ? "true" : undefined} key={milestone.days}>
+                <span className="customer-commit-rewards__icon" aria-hidden="true">
+                  {isComplete ? <CheckIcon /> : <RewardIcon />}
+                </span>
+                <div>
+                  <strong>{milestone.days}일 연속 커밋</strong>
+                  <span>{formatCommitRewardAmount(milestone.rewardAmount)} 리워드</span>
+                </div>
+                <small>
+                  {getCommitRewardStatusLabel(milestone, rewardSummary.currentStreakDays)}
+                </small>
+              </li>
+            );
+          })}
+        </ol>
+
+        <p className="customer-commit-rewards__notice">
+          7일 보상을 받은 뒤에도 연속 기록이 이어지면 14일 보상을 받을 수 있어요.
+        </p>
+      </section>
 
       <RecentTransactions title="최근 커밋" transactions={transactions} />
-    </>
+    </div>
   );
 }
 

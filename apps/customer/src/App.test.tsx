@@ -72,10 +72,11 @@ test("shows point-specific bottom tabs on points page", async () => {
   fireEvent.click(screen.getByRole("link", { name: "포인트" }));
 
   expect(window.location.pathname).toBe("/points");
-  expect(await screen.findByRole("region", { name: "최근 커밋 활동" })).toBeVisible();
-  expect(screen.getByRole("region", { name: "월별 커밋 예측" })).toBeVisible();
+  expect(await screen.findByRole("heading", { name: "5일째 이어가고 있어요" })).toBeVisible();
+  expect(screen.getByRole("region", { name: "이번 주 기록" })).toBeVisible();
+  expect(screen.getByRole("region", { name: "연속 커밋 리워드" })).toBeVisible();
   expect(screen.getByRole("navigation", { name: "포인트" })).toBeVisible();
-  expect(screen.getByRole("button", { name: "일일" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "커밋" })).toBeVisible();
   expect(screen.getByRole("button", { name: "월드컵" })).toBeVisible();
 
   fireEvent.click(screen.getByRole("button", { name: "월드컵" }));
@@ -86,10 +87,10 @@ test("shows point-specific bottom tabs on points page", async () => {
   expect(screen.getAllByText("프랑스")[0]).toBeVisible();
   expect(screen.getAllByText("노르웨이")[0]).toBeVisible();
 
-  fireEvent.click(screen.getByRole("button", { name: "일일" }));
+  fireEvent.click(screen.getByRole("button", { name: "커밋" }));
 
   expect(window.location.pathname).toBe("/points");
-  expect(screen.getByRole("region", { name: "최근 커밋 활동" })).toBeVisible();
+  expect(screen.getByRole("region", { name: "연속 커밋 리워드" })).toBeVisible();
 
   fireEvent.click(screen.getByRole("link", { name: "홈으로 돌아가기" }));
 

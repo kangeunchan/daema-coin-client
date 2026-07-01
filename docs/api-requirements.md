@@ -457,15 +457,17 @@ type CustomerOrder = {
 대상 파일:
 
 - `apps/customer/src/pages/points/CustomerPointsPage.tsx`
+- `apps/customer/src/pages/points/model/commitPoints.ts`
+- `apps/customer/src/shared/api/commits.ts`
 
 #### UI 요소와 API 매핑
 
 | UI | 현재 값 | 필요 API |
 | --- | --- | --- |
-| 커밋 잔디 | 119일 activity | `GET /api/customer/points/commit-activity?from=&to=` |
-| 잔디 legend | 적음/많음 | activity 응답의 level |
-| 월/주/일 탭 | 월별만 실제 표시 | `GET /api/customer/points/commit-stats?groupBy=month/week/day` |
-| 월별 차트 | 1월-이번 달 commits | commit stats 응답 |
+| 연속 커밋 요약 | 현재 5일, 최고 11일 | `GET /api/customer/points/commit-reward-summary` |
+| 다음 리워드 진행률 | 7일 5,000원 / 14일 15,000원 | reward summary의 milestones |
+| 이번 주 기록 | 하루 10커밋 이상 달성 여부 | `GET /api/customer/points/commit-activity?from=&to=` |
+| 누적 지급액 | 현재 0원 | reward summary의 totalRewardAmount |
 | 최근 커밋 | 4개 내역 | `GET /api/customer/points/commit-transactions?limit=` |
 
 #### 구조 예시
@@ -485,7 +487,26 @@ type CommitStat = {
   rewardedPoints: number;
   current: boolean;
 };
+
+type CommitRewardSummary = {
+  committedToday: boolean;
+  currentStreakDays: number;
+  dailyCommitGoal: 10;
+  longestStreakDays: number;
+  lastCommittedAt?: string;
+  todayCommitCount: number;
+  totalRewardAmount: number;
+  milestones: Array<{
+    days: 7 | 14;
+    rewardAmount: 5000 | 15000;
+    status: "locked" | "earned" | "paid";
+    achievedAt?: string;
+    paidAt?: string;
+  }>;
+};
 ```
+
+하루 커밋 수가 10개 이상일 때만 해당 날짜를 연속 기록 1일로 인정한다. 리워드는 7일 달성 시 5,000원, 연속 기록을 유지해 14일 달성 시 15,000원을 각각 자동 지급한다. 서버는 날짜 경계에 `Asia/Seoul`을 사용하고, 같은 마일스톤이 중복 지급되지 않도록 지급 처리를 멱등하게 보장해야 한다.
 
 ### 3.6 포인트: 월드컵 승부예측
 

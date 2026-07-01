@@ -3,6 +3,7 @@ import type { Activity } from "react-activity-calendar";
 import type { RecentTransaction } from "../../../entities/customer-home";
 import type {
   CustomerCommitActivityDto,
+  CustomerCommitRewardSummaryDto,
   CustomerCommitStatDto,
   CustomerCommitTransactionDto,
 } from "../../../shared/api/commits";
@@ -28,20 +29,77 @@ export type CommitChartDatum = {
   period?: string;
 };
 
+export type CommitRewardMilestone = {
+  achievedAt?: string;
+  days: number;
+  paidAt?: string;
+  rewardAmount: number;
+  status: "earned" | "locked" | "paid";
+};
+
+export type CommitRewardSummary = {
+  committedToday: boolean;
+  currentStreakDays: number;
+  dailyCommitGoal: number;
+  lastCommittedAt?: string;
+  longestStreakDays: number;
+  milestones: CommitRewardMilestone[];
+  todayCommitCount: number;
+  totalRewardAmount: number;
+};
+
+export const commitRewardMilestones = [
+  { days: 7, rewardAmount: 5_000 },
+  { days: 14, rewardAmount: 15_000 },
+] as const;
+
+export const commitRewardSummary = {
+  committedToday: true,
+  currentStreakDays: 5,
+  dailyCommitGoal: 10,
+  lastCommittedAt: "2026-07-01T10:42:00+09:00",
+  longestStreakDays: 11,
+  milestones: commitRewardMilestones.map((milestone) => ({
+    ...milestone,
+    status: "locked" as const,
+  })),
+  todayCommitCount: 10,
+  totalRewardAmount: 0,
+} satisfies CommitRewardSummary;
+
+export const emptyCommitRewardSummary = {
+  committedToday: false,
+  currentStreakDays: 0,
+  dailyCommitGoal: 10,
+  longestStreakDays: 0,
+  milestones: commitRewardMilestones.map((milestone) => ({
+    ...milestone,
+    status: "locked" as const,
+  })),
+  todayCommitCount: 0,
+  totalRewardAmount: 0,
+} satisfies CommitRewardSummary;
+
 function formatDate(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
 function createCommitActivity(): Activity[] {
-  const endDate = new Date("2026-06-23T00:00:00.000Z");
+  const endDate = new Date("2026-07-01T00:00:00.000Z");
 
   return Array.from({ length: ACTIVITY_DAY_COUNT }, (_, index) => {
-    const level = commitPattern[index % commitPattern.length] ?? 0;
+    const patternLevel = commitPattern[index % commitPattern.length] ?? 0;
+    const level =
+      index === ACTIVITY_DAY_COUNT - 6
+        ? 0
+        : index >= ACTIVITY_DAY_COUNT - 5
+          ? (index % 4) + 1
+          : patternLevel;
     const date = new Date(endDate);
     date.setUTCDate(endDate.getUTCDate() - (ACTIVITY_DAY_COUNT - index - 1));
 
     return {
-      count: level === 0 ? 0 : level * 2 + (index % 3),
+      count: index >= ACTIVITY_DAY_COUNT - 5 ? 10 : level === 0 ? 0 : level * 2 + (index % 3),
       date: formatDate(date),
       level,
     };
@@ -200,5 +258,45 @@ export function mapCommitTransactionDto(
       transaction.relativeTimeLabel ??
       getRecordText(transaction, ["displayTime", "time"]) ??
       formatLedgerRelativeTime(transaction.occurredAt),
+  };
+}
+
+function isCommitRewardStatus(
+  status: string | undefined,
+): status is CommitRewardMilestone["status"] {
+  return status === "earned" || status === "locked" || status === "paid";
+}
+
+export function mapCommitRewardSummaryDto(
+  summary: CustomerCommitRewardSummaryDto,
+): CommitRewardSummary {
+  const currentStreakDays = Math.max(0, Math.trunc(summary.currentStreakDays ?? 0));
+  const dailyCommitGoal = Math.max(1, Math.trunc(summary.dailyCommitGoal ?? 10));
+  const todayCommitCount = Math.max(0, Math.trunc(summary.todayCommitCount ?? 0));
+  const milestones = commitRewardMilestones.map((defaultMilestone) => {
+    const milestone = summary.milestones?.find((item) => item.days === defaultMilestone.days);
+    const inferredStatus = currentStreakDays >= defaultMilestone.days ? "earned" : "locked";
+
+    return {
+      ...(milestone?.achievedAt ? { achievedAt: milestone.achievedAt } : {}),
+      days: defaultMilestone.days,
+      ...(milestone?.paidAt ? { paidAt: milestone.paidAt } : {}),
+      rewardAmount: Math.max(0, milestone?.rewardAmount ?? defaultMilestone.rewardAmount),
+      status: isCommitRewardStatus(milestone?.status) ? milestone.status : inferredStatus,
+    };
+  });
+
+  return {
+    committedToday: todayCommitCount >= dailyCommitGoal && (summary.committedToday ?? true),
+    currentStreakDays,
+    dailyCommitGoal,
+    ...(summary.lastCommittedAt ? { lastCommittedAt: summary.lastCommittedAt } : {}),
+    longestStreakDays: Math.max(
+      currentStreakDays,
+      Math.max(0, Math.trunc(summary.longestStreakDays ?? 0)),
+    ),
+    milestones,
+    todayCommitCount,
+    totalRewardAmount: Math.max(0, summary.totalRewardAmount ?? 0),
   };
 }
