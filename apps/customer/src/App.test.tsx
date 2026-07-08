@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { App } from "./App";
@@ -7,6 +7,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-06-26T00:00:00+09:00"));
   window.localStorage.removeItem("daema-customer-auth");
+  window.localStorage.removeItem("daema.teacher.accessToken");
   window.history.replaceState({}, "", "/");
 });
 
@@ -63,6 +64,34 @@ test("moves between customer tab pages", async () => {
 
   expect(window.location.pathname).toBe("/points/worldcup");
   expect(await screen.findByRole("region", { name: "월드컵 포인트" })).toBeVisible();
+});
+
+test("logs in through the teacher route", async () => {
+  window.history.replaceState({}, "", "/teacher");
+
+  render(<App />);
+
+  expect(screen.getByRole("heading", { name: "교사용 로그인" })).toBeVisible();
+
+  fireEvent.change(screen.getByPlaceholderText("teacher"), {
+    target: { value: "teacher" },
+  });
+  fireEvent.change(screen.getByPlaceholderText("10자 이상"), {
+    target: { value: "teacher-password-1234" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "교사용 계정으로 시작" }));
+
+  await waitFor(() => expect(window.location.pathname).toBe("/"));
+  expect(await screen.findByRole("link", { name: "내역 상세 보기" })).toBeVisible();
+});
+
+test("keeps the teacher login page on the trailing slash route", () => {
+  window.history.replaceState({}, "", "/teacher/");
+
+  render(<App />);
+
+  expect(window.location.pathname).toBe("/teacher/");
+  expect(screen.getByRole("heading", { name: "교사용 로그인" })).toBeVisible();
 });
 
 test("shows point-specific bottom tabs on points page", async () => {

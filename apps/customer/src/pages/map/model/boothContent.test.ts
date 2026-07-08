@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { formatDmc, getProductIdFromPathname, recommendedProducts } from "./boothContent";
+import { formatDmc, getProductIdFromPathname } from "./boothContent";
 
 test("extracts booth product id from route pathnames", () => {
   expect(getProductIdFromPathname("/booth/portable-fan")).toBe("portable-fan");
@@ -10,5 +10,4 @@ test("extracts booth product id from route pathnames", () => {
 
 test("formats product prices as DMC labels", () => {
   expect(formatDmc(2480)).toBe("2,480 DMC");
-  expect(recommendedProducts.some((product) => product.id === "dogani-soup-ticket")).toBe(true);
 });

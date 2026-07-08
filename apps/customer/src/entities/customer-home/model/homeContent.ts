@@ -59,6 +59,12 @@ export type NavigationTab = {
   path: string;
 };
 
+export const boothFeatureOpenAt = "2026-07-08T00:00:00+09:00";
+
+export function isBoothFeatureOpen(now = new Date()) {
+  return now.getTime() >= new Date(boothFeatureOpenAt).getTime();
+}
+
 export const navigationTabs = [
   { icon: HomeIcon, id: "home", label: "홈", path: "/" },
   { icon: CreditCardIcon, id: "pay", label: "페이", path: "/pay" },

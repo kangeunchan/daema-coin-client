@@ -10,22 +10,41 @@ import {
 import { IconButton } from "@daema/ui/icon-button";
 import { Surface } from "@daema/ui/surface";
 
+import { createCustomerBoothOrder, fetchCustomerBoothHome } from "../../shared/api/booth";
+import type {
+  CustomerBoothBannerDto,
+  CustomerBoothCategoryDto,
+  CustomerBoothProductDto,
+} from "../../shared/api/booth";
+import { isCustomerApiEnabled } from "../../shared/api/client";
+import { ledgerAmountValue } from "../../shared/api/customerDataMappers";
 import { pushCustomerPath } from "../../shared/lib/customerNavigation";
 import { useCustomerPathname } from "../../shared/lib/useCustomerPathname";
 import { AppHeader } from "../../widgets/app-header";
 import {
-  boothCategories,
-  boothHeroSlides,
   formatDmc,
   getProductIdFromPathname,
-  recommendedProducts,
+  salePercent,
 } from "./model/boothContent";
-import type { BoothCategoryId, BoothProduct } from "./model/boothContent";
+import type { BoothCategory, BoothCategoryId, BoothProduct } from "./model/boothContent";
+
+type BoothHeroSlide = {
+  background: string;
+  badge: string;
+  imageSrc: string;
+  muted?: string;
+  note: string;
+  subtitle: string;
+  title: string;
+  tone?: string;
+  value: string;
+};
 
 type BoothRecommendationsProps = {
   categoryId: BoothCategoryId;
   onProductSelect: (product: BoothProduct) => void;
   panelId: string;
+  products: readonly BoothProduct[];
   title: string;
 };
 
@@ -67,23 +86,64 @@ function isImageVisuallyDark(image: HTMLImageElement) {
   return luminanceTotal / opaquePixelCount < 92;
 }
 
+const baseBoothCategories = [
+  { id: "all", label: "쇼핑 홈", title: "전체 부스 상품" },
+] satisfies readonly BoothCategory[];
+
 export function CustomerMapPage() {
   const pathname = useCustomerPathname();
   const [activeSlide, setActiveSlide] = useState(0);
   const [activeCategoryId, setActiveCategoryId] = useState<BoothCategoryId>("all");
+  const [apiCategories, setApiCategories] = useState<readonly BoothCategory[]>(baseBoothCategories);
+  const [apiHeroSlides, setApiHeroSlides] = useState<readonly BoothHeroSlide[]>([]);
+  const [apiProducts, setApiProducts] = useState<readonly BoothProduct[]>([]);
+  const categories = apiCategories;
+  const heroSlides = apiHeroSlides;
+  const products = apiProducts;
   const selectedProductId = getProductIdFromPathname(pathname);
-  const activeCategory = boothCategories.find((category) => category.id === activeCategoryId);
-  const selectedProduct = recommendedProducts.find((product) => product.id === selectedProductId);
+  const visibleCategoryId = categories.some((category) => category.id === activeCategoryId)
+    ? activeCategoryId
+    : "all";
+  const activeCategory = categories.find((category) => category.id === visibleCategoryId);
+  const selectedProduct = products.find((product) => product.id === selectedProductId);
   const tabPanelId = useId();
   const categoryTabRefs = useRef(new Map<BoothCategoryId, HTMLButtonElement>());
 
   useEffect(() => {
-    categoryTabRefs.current.get(activeCategoryId)?.scrollIntoView({
+    if (!isCustomerApiEnabled()) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    void fetchCustomerBoothHome()
+      .then((home) => {
+        if (isCancelled) {
+          return;
+        }
+
+        const nextCategories = mapBoothCategories(home.categories);
+        const nextHeroSlides = mapBoothHeroSlides(home.banners);
+        const nextProducts = mapBoothProducts(home.products);
+
+        setApiCategories(nextCategories);
+        setApiHeroSlides(nextHeroSlides);
+        setApiProducts(nextProducts);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    categoryTabRefs.current.get(visibleCategoryId)?.scrollIntoView({
       behavior: "smooth",
       block: "nearest",
       inline: "center",
     });
-  }, [activeCategoryId]);
+  }, [visibleCategoryId]);
 
   const openProductDetail = (product: BoothProduct) => {
     pushCustomerPath(`/booth/${product.id}`);
@@ -96,7 +156,9 @@ export function CustomerMapPage() {
   };
 
   if (selectedProduct) {
-    return <BoothProductDetail onBack={closeProductDetail} product={selectedProduct} />;
+    return (
+      <BoothProductDetail categories={categories} onBack={closeProductDetail} product={selectedProduct} />
+    );
   }
 
   return (
@@ -105,12 +167,12 @@ export function CustomerMapPage() {
       <Surface asChild className="customer-booth-category-surface" padding="none">
         <nav aria-label="부스 카테고리">
           <div className="customer-booth-categories" role="tablist">
-            {boothCategories.map((category) => (
+            {categories.map((category) => (
               <button
                 aria-controls={tabPanelId}
-                aria-selected={activeCategoryId === category.id}
+                aria-selected={visibleCategoryId === category.id}
                 className="customer-booth-category"
-                data-active={activeCategoryId === category.id ? "true" : undefined}
+                data-active={visibleCategoryId === category.id ? "true" : undefined}
                 id={`booth-category-${category.id}`}
                 key={category.id}
                 onClick={() => setActiveCategoryId(category.id)}
@@ -131,59 +193,62 @@ export function CustomerMapPage() {
           </div>
         </nav>
       </Surface>
-      <section
-        aria-label="부스 추천 상품"
-        className="customer-booth-hero-scroller"
-        onScroll={(event) => {
-          const target = event.currentTarget;
-          const nextIndex = Math.round(target.scrollLeft / target.clientWidth);
-          setActiveSlide(Math.min(Math.max(nextIndex, 0), boothHeroSlides.length - 1));
-        }}
-      >
-        {boothHeroSlides.map((slide, index) => (
-          <Surface
-            asChild
-            className="customer-booth-hero-card"
-            data-tone={"tone" in slide ? slide.tone : undefined}
-            key={slide.title}
-            padding="none"
-            style={
-              {
-                "--customer-booth-hero-background": slide.background,
-                "--customer-booth-hero-foreground":
-                  "muted" in slide ? "#ffffff" : "var(--daema-color-foreground-default)",
-                "--customer-booth-hero-muted":
-                  "muted" in slide ? slide.muted : "rgb(15 23 42 / 0.66)",
-              } as CSSProperties
-            }
-          >
-            <article aria-current={activeSlide === index ? "true" : undefined}>
-              <span className="customer-booth-hero-card__copy">
-                <span className="customer-booth-hero-card__badge">{slide.badge}</span>
-                <strong>{slide.title}</strong>
-                <b>{slide.value}</b>
-                <span className="customer-booth-hero-card__subtitle">{slide.subtitle}</span>
-                <span className="customer-booth-hero-card__note">{slide.note}</span>
-              </span>
-              <img
-                alt=""
-                aria-hidden="true"
-                className="customer-booth-hero-card__image"
-                src={slide.imageSrc}
-              />
-              <span className="customer-booth-hero-card__count">
-                {index + 1} / {boothHeroSlides.length}
-              </span>
-            </article>
-          </Surface>
-        ))}
-      </section>
+      {heroSlides.length > 0 ? (
+        <section
+          aria-label="부스 추천 상품"
+          className="customer-booth-hero-scroller"
+          onScroll={(event) => {
+            const target = event.currentTarget;
+            const nextIndex = Math.round(target.scrollLeft / target.clientWidth);
+            setActiveSlide(Math.min(Math.max(nextIndex, 0), heroSlides.length - 1));
+          }}
+        >
+          {heroSlides.map((slide, index) => (
+            <Surface
+              asChild
+              className="customer-booth-hero-card"
+              data-tone={slide.tone}
+              key={slide.title}
+              padding="none"
+              style={
+                {
+                  "--customer-booth-hero-background": slide.background,
+                  "--customer-booth-hero-foreground": slide.muted
+                    ? "#ffffff"
+                    : "var(--daema-color-foreground-default)",
+                  "--customer-booth-hero-muted": slide.muted ?? "rgb(15 23 42 / 0.66)",
+                } as CSSProperties
+              }
+            >
+              <article aria-current={activeSlide === index ? "true" : undefined}>
+                <span className="customer-booth-hero-card__copy">
+                  <span className="customer-booth-hero-card__badge">{slide.badge}</span>
+                  <strong>{slide.title}</strong>
+                  <b>{slide.value}</b>
+                  <span className="customer-booth-hero-card__subtitle">{slide.subtitle}</span>
+                  <span className="customer-booth-hero-card__note">{slide.note}</span>
+                </span>
+                <img
+                  alt=""
+                  aria-hidden="true"
+                  className="customer-booth-hero-card__image"
+                  src={slide.imageSrc}
+                />
+                <span className="customer-booth-hero-card__count">
+                  {index + 1} / {heroSlides.length}
+                </span>
+              </article>
+            </Surface>
+          ))}
+        </section>
+      ) : null}
       <BoothRecommendations
-        categoryId={activeCategoryId}
+        categoryId={visibleCategoryId}
         key={activeCategoryId}
         onProductSelect={openProductDetail}
         panelId={tabPanelId}
-        title={activeCategory?.title ?? "강은찬님을 위한 추천 상품"}
+        products={products}
+        title={activeCategory?.title ?? "전체 부스 상품"}
       />
     </div>
   );
@@ -193,21 +258,20 @@ function BoothRecommendations({
   categoryId,
   onProductSelect,
   panelId,
+  products,
   title,
 }: BoothRecommendationsProps) {
   const [darkImageBySrc, setDarkImageBySrc] = useState<Record<string, boolean>>({});
   const filteredProducts =
     categoryId === "all"
-      ? recommendedProducts
-      : recommendedProducts.filter((product) =>
+      ? products
+      : products.filter((product) =>
           (product.categories as readonly BoothCategoryId[]).includes(categoryId),
         );
-  const displayProducts = Array.from({ length: 10 }, (_, repeatIndex) =>
-    filteredProducts.map((product) => ({
-      ...product,
-      instanceId: `${product.id}-${repeatIndex}`,
-    })),
-  ).flat();
+  const displayProducts = filteredProducts.map((product) => ({
+    ...product,
+    instanceId: product.id,
+  }));
   const leftProducts = displayProducts.filter((_, index) => index % 2 === 0);
   const rightProducts = displayProducts.filter((_, index) => index % 2 === 1);
 
@@ -242,6 +306,7 @@ function BoothRecommendations({
         </div>
         <div className="customer-booth-product-card__body">
           <strong>{product.title}</strong>
+          <span className="customer-booth-product-card__price">{formatDmc(product.priceDmc)}</span>
           <span className="customer-booth-product-card__meta">
             <span>
               <EyeIcon aria-hidden="true" />
@@ -270,24 +335,36 @@ function BoothRecommendations({
           {rightProducts.map(renderProduct)}
         </div>
       </div>
+      {filteredProducts.length === 0 ? (
+        <p className="customer-booth-empty">표시할 상품이 없습니다.</p>
+      ) : null}
     </section>
   );
 }
 
 type BoothProductDetailProps = {
+  categories: readonly BoothCategory[];
   onBack: () => void;
   product: BoothProduct;
 };
 
-function BoothProductDetail({ onBack, product }: BoothProductDetailProps) {
+function BoothProductDetail({ categories, onBack, product }: BoothProductDetailProps) {
   const [quantityText, setQuantityText] = useState("1");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isPaymentComplete, setIsPaymentComplete] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
   const categoryLabels = product.categories.flatMap((categoryId) => {
-    const label = boothCategories.find((category) => category.id === categoryId)?.label;
+    const label = categories.find((category) => category.id === categoryId)?.label;
     return label ? [label] : [];
   });
-  const originalPriceDmc = Math.ceil(product.priceDmc * 1.28);
+  const discountPercent = salePercent(product);
+  const originalPriceDmc =
+    product.originalPriceDmc && product.originalPriceDmc > product.priceDmc
+      ? product.originalPriceDmc
+      : discountPercent > 0
+        ? Math.ceil(product.priceDmc / (1 - discountPercent / 100))
+        : undefined;
   const quantity = Math.min(Math.max(Number.parseInt(quantityText, 10) || 1, 1), 99);
   const totalPriceDmc = product.priceDmc * quantity;
   const quantityInput = (
@@ -321,9 +398,25 @@ function BoothProductDetail({ onBack, product }: BoothProductDetailProps) {
     return (
       <BoothProductCheckout
         onBack={() => setIsCheckingOut(false)}
+        error={checkoutError}
+        isPaying={isPaying}
         onPay={() => {
-          setIsPaymentComplete(true);
-          window.scrollTo({ top: 0, behavior: "smooth" });
+          void (async () => {
+            if (isPaying) {
+              return;
+            }
+            setIsPaying(true);
+            setCheckoutError("");
+            try {
+              await createCustomerBoothOrder({ productId: product.id, quantity });
+              setIsPaymentComplete(true);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            } catch (error) {
+              setCheckoutError(error instanceof Error ? error.message : "결제를 완료하지 못했습니다.");
+            } finally {
+              setIsPaying(false);
+            }
+          })();
         }}
         product={product}
         quantity={quantity}
@@ -393,10 +486,12 @@ function BoothProductDetail({ onBack, product }: BoothProductDetailProps) {
           ))}
         </div>
         <h1 id="booth-product-detail-title">{product.title}</h1>
-        <div className="customer-booth-detail-price-row">
-          <span>28%</span>
-          <del>{formatDmc(originalPriceDmc)}</del>
-        </div>
+        {discountPercent > 0 && originalPriceDmc ? (
+          <div className="customer-booth-detail-price-row">
+            <span>{discountPercent}%</span>
+            <del>{formatDmc(originalPriceDmc)}</del>
+          </div>
+        ) : null}
         <strong className="customer-booth-detail-price">{formatDmc(product.priceDmc)}</strong>
         <div className="customer-booth-detail-meta">
           <span>
@@ -415,10 +510,6 @@ function BoothProductDetail({ onBack, product }: BoothProductDetailProps) {
           <div>
             <dt>수령방법</dt>
             <dd>현장 부스 교환</dd>
-          </div>
-          <div>
-            <dt>구매제한</dt>
-            <dd>하루 최대 1개</dd>
           </div>
         </dl>
       </section>
@@ -453,7 +544,106 @@ function BoothProductDetail({ onBack, product }: BoothProductDetailProps) {
   );
 }
 
+function categoryID(value: string | undefined): BoothCategoryId {
+  const normalized = value?.trim();
+  if (
+    normalized === "booth" ||
+    normalized === "rest" ||
+    normalized === "experience" ||
+    normalized === "food"
+  ) {
+    return normalized;
+  }
+  return "booth";
+}
+
+function mapBoothCategories(items: readonly CustomerBoothCategoryDto[] | undefined) {
+  const categories = (items ?? [])
+    .map((item) => {
+      const id = categoryID(item.id ?? item.categoryId);
+      const label = item.label ?? item.name ?? item.title ?? id;
+      return { id, label, title: item.title ?? label };
+    })
+    .filter((category) => category.id !== "all");
+
+  return [{ id: "all", label: "쇼핑 홈", title: "전체 부스 상품" }, ...categories] satisfies
+    BoothCategory[];
+}
+
+function mapBoothHeroSlides(items: readonly CustomerBoothBannerDto[] | undefined) {
+  return (items ?? []).map((item) => ({
+    badge: item.badge ?? "부스 추천",
+    background: item.background ?? "#fffbf5",
+    imageSrc: item.imageSrc ?? item.imageUrl ?? "/3dicons/coin.png",
+    muted: item.muted,
+    note: item.note ?? "현장 부스에서 바로 이용",
+    subtitle: item.subtitle ?? "",
+    title: item.title ?? "부스 상품",
+    tone: item.tone,
+    value: item.value ?? "",
+  })) as BoothHeroSlide[];
+}
+
+function stringList(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string");
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    return [value];
+  }
+  return [];
+}
+
+function mapBoothProducts(items: readonly CustomerBoothProductDto[] | undefined) {
+  return (items ?? [])
+    .map((item, index): BoothProduct | undefined => {
+      const id = item.id ?? item.productId;
+      const title = item.title ?? item.name;
+      if (!id || !title) {
+        return undefined;
+      }
+
+      const categoryValues = [
+        ...stringList(item.categories),
+        ...stringList(item.categoryId),
+        ...stringList(item.category),
+      ];
+      const categories: BoothCategoryId[] =
+        categoryValues.length > 0 ? categoryValues.map(categoryID) : ["booth"];
+      const price =
+        ledgerAmountValue(item.salePrice) || ledgerAmountValue(item.price) || item.priceDmc || 0;
+      const originalPrice = ledgerAmountValue(item.price) || item.priceDmc || undefined;
+
+      const product: BoothProduct = {
+        categories,
+        description: item.description ?? "부스에서 구매할 수 있는 상품입니다.",
+        id,
+        imageBackground: item.imageBackground ?? "#e9edf4",
+        imageSrc: item.imageSrc ?? item.imageUrl ?? item.thumbnail ?? "/3dicons/coin.png",
+        meta: item.meta ?? `${(index + 1) * 123} 명`,
+        priceDmc: price,
+        title,
+      };
+      if (item.boothId) {
+        product.boothId = item.boothId;
+      }
+      if (typeof item.discountPercent === "number") {
+        product.discountPercent = item.discountPercent;
+      }
+      if (originalPrice && originalPrice > price) {
+        product.originalPriceDmc = originalPrice;
+      }
+      if (item.rating) {
+        product.rating = item.rating;
+      }
+      return product;
+    })
+    .filter((product): product is BoothProduct => product !== undefined && product.priceDmc > 0);
+}
+
 type BoothProductCheckoutProps = {
+  error: string;
+  isPaying: boolean;
   onBack: () => void;
   onPay: () => void;
   product: BoothProduct;
@@ -462,6 +652,8 @@ type BoothProductCheckoutProps = {
 };
 
 function BoothProductCheckout({
+  error,
+  isPaying,
   onBack,
   onPay,
   product,
@@ -514,8 +706,9 @@ function BoothProductCheckout({
       </main>
 
       <footer className="customer-booth-checkout-purchase">
-        <button onClick={onPay} type="button">
-          결제하기
+        {error ? <p className="customer-booth-checkout-error">{error}</p> : null}
+        <button disabled={isPaying} onClick={onPay} type="button">
+          {isPaying ? "결제 중" : "결제하기"}
         </button>
       </footer>
     </div>
