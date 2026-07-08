@@ -10,7 +10,11 @@ import {
 import { IconButton } from "@daema/ui/icon-button";
 import { Surface } from "@daema/ui/surface";
 
-import { createCustomerBoothOrder, fetchCustomerBoothHome } from "../../shared/api/booth";
+import {
+  createCustomerBoothOrder,
+  createCustomerBoothProductView,
+  fetchCustomerBoothHome,
+} from "../../shared/api/booth";
 import type {
   CustomerBoothBannerDto,
   CustomerBoothCategoryDto,
@@ -24,7 +28,6 @@ import { AppHeader } from "../../widgets/app-header";
 import {
   formatDmc,
   getProductIdFromPathname,
-  salePercent,
 } from "./model/boothContent";
 import type { BoothCategory, BoothCategoryId, BoothProduct } from "./model/boothContent";
 
@@ -108,6 +111,25 @@ export function CustomerMapPage() {
   const selectedProduct = products.find((product) => product.id === selectedProductId);
   const tabPanelId = useId();
   const categoryTabRefs = useRef(new Map<BoothCategoryId, HTMLButtonElement>());
+
+  useEffect(() => {
+    if (!selectedProduct || !isCustomerApiEnabled()) {
+      return;
+    }
+
+    void createCustomerBoothProductView(selectedProduct.id)
+      .then((item) => {
+        const viewCount = productViewCount(item);
+        setApiProducts((currentProducts) =>
+          currentProducts.map((product) =>
+            product.id === selectedProduct.id
+              ? { ...product, meta: formatProductViews(viewCount), viewCount }
+              : product,
+          ),
+        );
+      })
+      .catch(() => undefined);
+  }, [selectedProduct?.id]);
 
   useEffect(() => {
     if (!isCustomerApiEnabled()) {
@@ -358,13 +380,6 @@ function BoothProductDetail({ categories, onBack, product }: BoothProductDetailP
     const label = categories.find((category) => category.id === categoryId)?.label;
     return label ? [label] : [];
   });
-  const discountPercent = salePercent(product);
-  const originalPriceDmc =
-    product.originalPriceDmc && product.originalPriceDmc > product.priceDmc
-      ? product.originalPriceDmc
-      : discountPercent > 0
-        ? Math.ceil(product.priceDmc / (1 - discountPercent / 100))
-        : undefined;
   const quantity = Math.min(Math.max(Number.parseInt(quantityText, 10) || 1, 1), 99);
   const totalPriceDmc = product.priceDmc * quantity;
   const quantityInput = (
@@ -486,12 +501,6 @@ function BoothProductDetail({ categories, onBack, product }: BoothProductDetailP
           ))}
         </div>
         <h1 id="booth-product-detail-title">{product.title}</h1>
-        {discountPercent > 0 && originalPriceDmc ? (
-          <div className="customer-booth-detail-price-row">
-            <span>{discountPercent}%</span>
-            <del>{formatDmc(originalPriceDmc)}</del>
-          </div>
-        ) : null}
         <strong className="customer-booth-detail-price">{formatDmc(product.priceDmc)}</strong>
         <div className="customer-booth-detail-meta">
           <span>
@@ -594,9 +603,28 @@ function stringList(value: unknown) {
   return [];
 }
 
+function numberValue(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
+function productViewCount(item: CustomerBoothProductDto) {
+  return Math.max(0, Math.trunc(numberValue(item.viewCount) ?? numberValue(item.view_count) ?? 0));
+}
+
+function formatProductViews(count: number) {
+  return `조회 ${count.toLocaleString("ko-KR")}회`;
+}
+
 function mapBoothProducts(items: readonly CustomerBoothProductDto[] | undefined) {
   return (items ?? [])
-    .map((item, index): BoothProduct | undefined => {
+    .map((item): BoothProduct | undefined => {
       const id = item.id ?? item.productId;
       const title = item.title ?? item.name;
       if (!id || !title) {
@@ -612,7 +640,7 @@ function mapBoothProducts(items: readonly CustomerBoothProductDto[] | undefined)
         categoryValues.length > 0 ? categoryValues.map(categoryID) : ["booth"];
       const price =
         ledgerAmountValue(item.salePrice) || ledgerAmountValue(item.price) || item.priceDmc || 0;
-      const originalPrice = ledgerAmountValue(item.price) || item.priceDmc || undefined;
+      const viewCount = productViewCount(item);
 
       const product: BoothProduct = {
         categories,
@@ -620,18 +648,13 @@ function mapBoothProducts(items: readonly CustomerBoothProductDto[] | undefined)
         id,
         imageBackground: item.imageBackground ?? "#e9edf4",
         imageSrc: item.imageSrc ?? item.imageUrl ?? item.thumbnail ?? "/3dicons/coin.png",
-        meta: item.meta ?? `${(index + 1) * 123} 명`,
+        meta: formatProductViews(viewCount),
         priceDmc: price,
         title,
+        viewCount,
       };
       if (item.boothId) {
         product.boothId = item.boothId;
-      }
-      if (typeof item.discountPercent === "number") {
-        product.discountPercent = item.discountPercent;
-      }
-      if (originalPrice && originalPrice > price) {
-        product.originalPriceDmc = originalPrice;
       }
       if (item.rating) {
         product.rating = item.rating;

@@ -10,28 +10,15 @@ export type BoothProduct = {
   boothId?: string;
   categories: BoothCategoryId[];
   description: string;
-  discountPercent?: number;
   id: string;
   imageBackground: string;
   imageSrc: string;
   meta: string;
-  originalPriceDmc?: number;
   priceDmc: number;
   rating?: string;
   title: string;
+  viewCount?: number;
 };
-
-export function salePercent(product: BoothProduct) {
-  if (typeof product.discountPercent === "number" && product.discountPercent > 0) {
-    return Math.round(product.discountPercent);
-  }
-
-  if (product.originalPriceDmc && product.originalPriceDmc > product.priceDmc) {
-    return Math.round(((product.originalPriceDmc - product.priceDmc) / product.originalPriceDmc) * 100);
-  }
-
-  return 0;
-}
 
 export function getProductIdFromPathname(pathname: string) {
   const [, productId] = pathname.match(/^\/booth\/([^/]+)/) ?? [];

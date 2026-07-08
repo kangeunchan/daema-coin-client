@@ -33,7 +33,6 @@ export type CustomerBoothProductDto = Record<string, unknown> & {
   category?: string;
   categoryId?: string;
   description?: string;
-  discountPercent?: number;
   id?: string;
   imageBackground?: string;
   imageSrc?: string;
@@ -48,6 +47,8 @@ export type CustomerBoothProductDto = Record<string, unknown> & {
   status?: string;
   thumbnail?: string;
   title?: string;
+  viewCount?: number;
+  view_count?: number;
 };
 
 export type CustomerBoothHomeDto = {
@@ -74,4 +75,14 @@ export async function createCustomerBoothOrder(input: { productId: string; quant
     body: input,
     method: "POST",
   });
+}
+
+export async function createCustomerBoothProductView(productId: string) {
+  return customerApiRequest<CustomerBoothProductDto>(
+    `/customer/booth/products/${encodeURIComponent(productId)}/view`,
+    {
+      body: {},
+      method: "POST",
+    },
+  );
 }

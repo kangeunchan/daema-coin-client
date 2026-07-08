@@ -37,6 +37,15 @@ import type {
   SellerUpload,
 } from "./api";
 
+const productCategoryOptions = [
+  { label: "음식", value: "food" },
+  { label: "체험", value: "experience" },
+] as const;
+
+function productCategoryLabel(value: string) {
+  return productCategoryOptions.find((category) => category.value === value)?.label ?? value;
+}
+
 type SellerSalesDashboardProps = {
   booth?: SellerBooth | undefined;
   booths: readonly SellerBooth[];
@@ -312,7 +321,7 @@ export function SellerSalesDashboard({
   const [orderSort, setOrderSort] = useState<OrderSort>("oldest");
   const [searchQuery, setSearchQuery] = useState("");
   const [newProduct, setNewProduct] = useState({
-    category: "음료",
+    category: "food",
     description: "",
     discountPercent: "",
     name: "",
@@ -1165,7 +1174,7 @@ export function SellerSalesDashboard({
                     }));
                     selectProductImage(undefined);
                     setNewProduct({
-                      category: "음료",
+                      category: "food",
                       description: "",
                       discountPercent: "",
                       name: "",
@@ -1204,10 +1213,11 @@ export function SellerSalesDashboard({
                       }
                       value={newProduct.category}
                     >
-                      <option>음료</option>
-                      <option>메인 메뉴</option>
-                      <option>사이드</option>
-                      <option>세트</option>
+                      {productCategoryOptions.map((category) => (
+                        <option key={category.value} value={category.value}>
+                          {category.label}
+                        </option>
+                      ))}
                     </select>
                   </label>
                   <label>
@@ -1329,7 +1339,7 @@ export function SellerSalesDashboard({
                       )}
                     </span>
                     <div>
-                      <small>{newProduct.category}</small>
+                      <small>{productCategoryLabel(newProduct.category)}</small>
                       <strong>{newProduct.name || "상품명이 표시됩니다"}</strong>
                       <p>
                         {newProduct.description ||
