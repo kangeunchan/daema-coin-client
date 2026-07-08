@@ -17,6 +17,7 @@ import {
   logoutSeller,
   createSellerProduct,
   createSellerProductImage,
+  deleteSellerProduct,
   SellerApiError,
   updateSellerOrderStatus,
   updateSellerProduct,
@@ -237,6 +238,10 @@ export function App() {
         const updated = await updateSellerProduct(productId, input);
         await loadSellerData();
         return updated;
+      }}
+      onDeleteProduct={async (productId) => {
+        await deleteSellerProduct(productId);
+        await loadSellerData();
       }}
       onUploadProductImage={async ({ boothId, file, productId }) => {
         const uploadInput: Parameters<typeof uploadSellerFile>[0] = {

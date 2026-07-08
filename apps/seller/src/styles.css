@@ -1568,14 +1568,14 @@ body {
   font-weight: 650;
 }
 .sales-product-labels {
-  grid-template-columns: minmax(220px, 1fr) 120px 90px 100px 140px 100px;
+  grid-template-columns: minmax(220px, 1fr) 120px 120px 100px 140px 100px 72px;
   padding-left: 56px;
   gap: 14px;
 }
 .sales-product-table article {
   display: grid;
   min-height: 82px;
-  grid-template-columns: 42px minmax(180px, 1fr) 120px 90px 100px 140px 100px;
+  grid-template-columns: 42px minmax(180px, 1fr) 120px 120px 100px 140px 100px 72px;
   align-items: center;
   gap: 14px;
   border-top: 1px solid #f0f1f3;
@@ -1619,28 +1619,30 @@ body {
 .sales-product-table article > strong small {
   text-decoration: line-through;
 }
-.sales-discount-input {
-  display: flex;
-  width: 72px;
+.sales-category-select {
+  width: 100%;
   height: 36px;
-  align-items: center;
-  gap: 4px;
-  padding: 0 9px;
+  border: 0;
   border-radius: 10px;
-  background: #fff4e6;
-  color: #f76707;
+  background: #eef6ff;
+  color: #1c64f2;
   font-size: 11px;
   font-weight: 800;
-}
-.sales-discount-input input {
-  width: 100%;
-  min-width: 0;
-  border: 0;
   outline: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: right;
+  padding: 0 10px;
+}
+.sales-product-delete {
+  display: grid;
+  width: 40px;
+  height: 36px;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: #fff1f2;
+  color: #e11d48;
+}
+.sales-product-delete svg {
+  width: 15px;
 }
 .sales-stock-stepper {
   display: flex;

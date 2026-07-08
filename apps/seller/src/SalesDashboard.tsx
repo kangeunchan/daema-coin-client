@@ -21,6 +21,7 @@ import {
   Settings2,
   ShoppingBag,
   Store,
+  Trash2,
   Users,
   WalletCards,
   X,
@@ -46,6 +47,13 @@ function productCategoryLabel(value: string) {
   return productCategoryOptions.find((category) => category.value === value)?.label ?? value;
 }
 
+function productCategoryValue(value: string | undefined) {
+  if (value === "experience" || value === "체험") {
+    return "experience";
+  }
+  return "food";
+}
+
 type SellerSalesDashboardProps = {
   booth?: SellerBooth | undefined;
   booths: readonly SellerBooth[];
@@ -61,19 +69,17 @@ type SellerSalesDashboardProps = {
           stock?: number;
           thumbnail?: string;
           title: string;
-          discountPercent?: number;
-          salePrice?: number;
         },
       ) => Promise<SellerProduct>)
     | undefined;
+  onDeleteProduct?: ((productId: string) => Promise<void>) | undefined;
   onLogout?: (() => void) | undefined;
   onUpdateOrderStatus?: ((orderId: string, status: string) => Promise<SellerOrder>) | undefined;
   onUpdateProduct?:
     | ((
         productId: string,
         input: {
-          discountPercent?: number;
-          salePrice?: number;
+          category?: string;
           status?: string;
           stock?: number;
         },
@@ -89,10 +95,9 @@ type SellerSalesDashboardProps = {
 };
 
 type SellerProductItem = {
-  discountPercent?: number;
+  category: string;
   id: string;
   name: string;
-  originalPrice?: number;
   price: number;
   imageUrl?: string;
   sold: number;
@@ -156,19 +161,6 @@ function textRecordValue(record: Record<string, unknown>, keys: string[]) {
   return undefined;
 }
 
-function salePercentFromPrices(originalPrice: number | undefined, salePrice: number) {
-  if (!originalPrice || originalPrice <= salePrice) {
-    return 0;
-  }
-  return Math.round(((originalPrice - salePrice) / originalPrice) * 100);
-}
-
-function salePriceFromForm(priceText: string, discountText: string) {
-  const price = Math.max(Number(priceText) || 0, 0);
-  const discountPercent = Math.min(Math.max(Number(discountText) || 0, 0), 95);
-  return discountPercent > 0 ? Math.round(price * (1 - discountPercent / 100)) : price;
-}
-
 function mapSellerProductItem(product: SellerProduct): SellerProductItem | undefined {
   const id = product.id ?? product.productId;
   const name = product.title ?? product.name;
@@ -178,6 +170,7 @@ function mapSellerProductItem(product: SellerProduct): SellerProductItem | undef
   const originalPrice = numericRecordValue(product, ["price", "originalPrice"]);
   const salePrice = numericRecordValue(product, ["salePrice"]) || originalPrice;
   const item: SellerProductItem = {
+    category: productCategoryValue(textRecordValue(product, ["category", "categoryId"])),
     id,
     name,
     price: salePrice,
@@ -185,15 +178,9 @@ function mapSellerProductItem(product: SellerProduct): SellerProductItem | undef
     status: product.status ?? "판매 중",
     stock: numericRecordValue(product, ["stock", "stockQuantity"]),
   };
-  if (typeof product.discountPercent === "number") {
-    item.discountPercent = product.discountPercent;
-  }
   const imageUrl = textRecordValue(product, ["imageUrl", "thumbnail"]);
   if (imageUrl) {
     item.imageUrl = imageUrl;
-  }
-  if (originalPrice > salePrice) {
-    item.originalPrice = originalPrice;
   }
   return item;
 }
@@ -306,6 +293,7 @@ export function SellerSalesDashboard({
   booths,
   dashboard,
   onCreateProduct,
+  onDeleteProduct,
   onLogout,
   onUpdateOrderStatus,
   onUpdateProduct,
@@ -323,7 +311,6 @@ export function SellerSalesDashboard({
   const [newProduct, setNewProduct] = useState({
     category: "food",
     description: "",
-    discountPercent: "",
     name: "",
     price: "",
     stock: "",
@@ -360,7 +347,6 @@ export function SellerSalesDashboard({
   const [lastCompletedOrderId, setLastCompletedOrderId] = useState<string | null>(null);
   const [productStocks, setProductStocks] = useState<Record<string, number>>({});
   const [productStatuses, setProductStatuses] = useState<Record<string, string>>({});
-  const [productDiscounts, setProductDiscounts] = useState<Record<string, string>>({});
   const searchInputRef = useRef<HTMLInputElement>(null);
   const payments = (report?.payments ?? []).slice(0, 6);
   const revenue = report?.totalAmount ?? dashboard?.revenue;
@@ -382,19 +368,8 @@ export function SellerSalesDashboard({
     () => Object.fromEntries(mappedApiProducts.map((product) => [product.id, product.status])),
     [mappedApiProducts],
   );
-  const apiProductDiscounts = useMemo(
-    () =>
-      Object.fromEntries(
-        mappedApiProducts.map((product) => [
-          product.id,
-          String(product.discountPercent ?? salePercentFromPrices(product.originalPrice, product.price)),
-        ]),
-      ),
-    [mappedApiProducts],
-  );
   const currentProductStocks = { ...apiProductStocks, ...productStocks };
   const currentProductStatuses = { ...apiProductStatuses, ...productStatuses };
-  const currentProductDiscounts = { ...apiProductDiscounts, ...productDiscounts };
   const products = mappedApiProducts;
   const orders = useMemo(
     () =>
@@ -997,20 +972,14 @@ export function SellerSalesDashboard({
               <div className="sales-product-labels" aria-hidden="true">
                 <span>상품</span>
                 <span>판매가</span>
-                <span>할인</span>
+                <span>카테고리</span>
                 <span>오늘 판매</span>
                 <span>남은 재고</span>
                 <span>상태</span>
+                <span>관리</span>
               </div>
               {visibleProducts.map((product) => {
                 const stock = currentProductStocks[product.id] ?? product.stock;
-                const discountText =
-                  currentProductDiscounts[product.id] ??
-                  String(product.discountPercent ?? salePercentFromPrices(product.originalPrice, product.price));
-                const discountPercent = Math.min(Math.max(Number(discountText) || 0, 0), 95);
-                const originalPrice = product.originalPrice ?? product.price;
-                const salePrice =
-                  discountPercent > 0 ? Math.round(originalPrice * (1 - discountPercent / 100)) : originalPrice;
                 return (
                   <article key={product.id}>
                     <span className="sales-product-thumb">
@@ -1025,39 +994,24 @@ export function SellerSalesDashboard({
                       <small>{product.id}</small>
                     </div>
                     <strong>
-                      {salePrice.toLocaleString("ko-KR")}원
-                      {discountPercent > 0 ? <small>{originalPrice.toLocaleString("ko-KR")}원</small> : null}
+                      {product.price.toLocaleString("ko-KR")}원
                     </strong>
-                    <label className="sales-discount-input">
-                      <input
-                        aria-label={`${product.name} 할인율`}
-                        inputMode="numeric"
-                        max="95"
-                        min="0"
-                        onBlur={() => {
-                          setProductDiscounts((discounts) => ({
-                            ...discounts,
-                            [product.id]: String(discountPercent),
-                          }));
-                          if (onUpdateProduct) {
-                            void onUpdateProduct(product.id, {
-                              discountPercent,
-                              salePrice:
-                                discountPercent > 0
-                                  ? Math.round(originalPrice * (1 - discountPercent / 100))
-                                  : originalPrice,
-                            });
-                          }
-                        }}
-                        onChange={(event) => {
-                          const nextValue = event.currentTarget.value.replace(/\D/g, "").slice(0, 2);
-                          setProductDiscounts((discounts) => ({ ...discounts, [product.id]: nextValue }));
-                        }}
-                        pattern="[0-9]*"
-                        value={discountText}
-                      />
-                      %
-                    </label>
+                    <select
+                      aria-label={`${product.name} 카테고리`}
+                      className="sales-category-select"
+                      onChange={(event) => {
+                        if (onUpdateProduct) {
+                          void onUpdateProduct(product.id, { category: event.currentTarget.value });
+                        }
+                      }}
+                      value={product.category}
+                    >
+                      {productCategoryOptions.map((category) => (
+                        <option key={category.value} value={category.value}>
+                          {category.label}
+                        </option>
+                      ))}
+                    </select>
                     <span>{product.sold}개</span>
                     <div className="sales-stock-stepper">
                       <button
@@ -1075,9 +1029,9 @@ export function SellerSalesDashboard({
                       <strong data-low={stock < 10}>{stock}</strong>
                       <button
                         aria-label={`${product.name} 재고 늘리기`}
-                        onClick={() =>
-                          setProductStocks((stocks) => ({ ...stocks, [product.id]: stock + 1 }))
-                        }
+                        onClick={() => {
+                          setProductStocks((stocks) => ({ ...stocks, [product.id]: stock + 1 }));
+                        }}
                         type="button"
                       >
                         <Plus />
@@ -1099,6 +1053,18 @@ export function SellerSalesDashboard({
                     >
                       {currentProductStatuses[product.id] ?? product.status}
                       <ChevronDown />
+                    </button>
+                    <button
+                      aria-label={`${product.name} 삭제`}
+                      className="sales-product-delete"
+                      onClick={() => {
+                        if (onDeleteProduct && window.confirm(`${product.name} 상품을 삭제할까요?`)) {
+                          void onDeleteProduct(product.id);
+                        }
+                      }}
+                      type="button"
+                    >
+                      <Trash2 />
                     </button>
                   </article>
                 );
@@ -1126,14 +1092,8 @@ export function SellerSalesDashboard({
                 void (async () => {
                   const price = Number(newProduct.price);
                   const stock = Number(newProduct.stock);
-                  const discountPercent = Math.min(
-                    Math.max(Number(newProduct.discountPercent) || 0, 0),
-                    95,
-                  );
                   const title = newProduct.name.trim();
                   if (!title || price < 0 || stock < 0 || isCreatingProduct) return;
-                  const salePrice =
-                    discountPercent > 0 ? Math.round(price * (1 - discountPercent / 100)) : price;
 
                   if (!activeBoothId || !onCreateProduct) {
                     setProductCreateError("연결된 부스가 없어 상품을 등록할 수 없습니다.");
@@ -1158,8 +1118,6 @@ export function SellerSalesDashboard({
                       description: newProduct.description.trim(),
                       imageUrl,
                       price,
-                      discountPercent,
-                      salePrice,
                       stock,
                       thumbnail: imageUrl,
                       title,
@@ -1168,15 +1126,10 @@ export function SellerSalesDashboard({
 
                     setProductStocks((stocks) => ({ ...stocks, [id]: stock }));
                     setProductStatuses((statuses) => ({ ...statuses, [id]: "판매 중" }));
-                    setProductDiscounts((discounts) => ({
-                      ...discounts,
-                      [id]: String(discountPercent),
-                    }));
                     selectProductImage(undefined);
                     setNewProduct({
                       category: "food",
                       description: "",
-                      discountPercent: "",
                       name: "",
                       price: "",
                       stock: "",
@@ -1273,7 +1226,7 @@ export function SellerSalesDashboard({
 
                 <section>
                   <h2>가격과 재고</h2>
-                  <p>축제 당일 판매 가격, 할인율, 시작 재고를 입력하세요.</p>
+                  <p>축제 당일 판매 가격과 시작 재고를 입력하세요.</p>
                   <div className="sales-product-form__row">
                     <label>
                       판매 가격
@@ -1290,26 +1243,6 @@ export function SellerSalesDashboard({
                           value={newProduct.price}
                         />
                         원
-                      </span>
-                    </label>
-                    <label>
-                      할인율
-                      <span>
-                        <input
-                          aria-label="할인율"
-                          max="95"
-                          min="0"
-                          onChange={(event) =>
-                            setNewProduct((product) => ({
-                              ...product,
-                              discountPercent: event.target.value,
-                            }))
-                          }
-                          placeholder="0"
-                          type="number"
-                          value={newProduct.discountPercent}
-                        />
-                        %
                       </span>
                     </label>
                     <label>
@@ -1347,7 +1280,7 @@ export function SellerSalesDashboard({
                       </p>
                     </div>
                     <b>
-                      {salePriceFromForm(newProduct.price, newProduct.discountPercent).toLocaleString("ko-KR")}원
+                      {(Math.max(Number(newProduct.price) || 0, 0)).toLocaleString("ko-KR")}원
                     </b>
                   </div>
                 </section>

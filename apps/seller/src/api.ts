@@ -100,7 +100,6 @@ export type SellerProduct = Record<string, unknown> & {
   stockQuantity?: number;
   thumbnail?: string;
   title?: string;
-  discountPercent?: number;
 };
 
 export const sellerApiBaseUrl =
@@ -224,8 +223,6 @@ export async function createSellerProduct(
     stock?: number;
     thumbnail?: string;
     title: string;
-    discountPercent?: number;
-    salePrice?: number;
   },
 ) {
   return sellerApiRequest<SellerProduct>(`/seller/booths/${encodeURIComponent(boothId)}/products`, {
@@ -237,8 +234,7 @@ export async function createSellerProduct(
 export async function updateSellerProduct(
   productId: string,
   input: {
-    discountPercent?: number;
-    salePrice?: number;
+    category?: string;
     status?: string;
     stock?: number;
   },
@@ -247,6 +243,15 @@ export async function updateSellerProduct(
     body: input,
     method: "PATCH",
   });
+}
+
+export async function deleteSellerProduct(productId: string) {
+  return sellerApiRequest<{ deleted?: boolean; productId?: string }>(
+    `/seller/products/${encodeURIComponent(productId)}`,
+    {
+      method: "DELETE",
+    },
+  );
 }
 
 export async function updateSellerOrderStatus(orderId: string, status: string) {
