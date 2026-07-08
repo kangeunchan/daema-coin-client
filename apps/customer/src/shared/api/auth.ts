@@ -3,6 +3,7 @@ import {
   customerApiBaseUrl,
   customerApiRequest,
   isCustomerApiEnabled,
+  teacherAccessTokenStorageKey,
 } from "./client";
 
 export type CustomerProfile = {
@@ -24,6 +25,19 @@ export type CustomerSessionStatus =
       status: "unauthenticated";
     };
 
+export type TeacherLoginSession = {
+  accessToken?: string;
+  expiresAt?: string;
+  role?: string;
+  tokenType?: string;
+  user?: {
+    id?: string;
+    login?: string;
+    name?: string;
+    roles?: string[];
+  };
+};
+
 const customerAuthStorageKey = "daema-customer-auth";
 const githubLoginSuccessParam = "login";
 
@@ -33,6 +47,31 @@ export function hasStoredCustomerSession() {
   }
 
   return window.localStorage.getItem(customerAuthStorageKey) !== null;
+}
+
+export function readTeacherAccessToken() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  return window.localStorage.getItem(teacherAccessTokenStorageKey) ?? "";
+}
+
+function writeTeacherAccessToken(token: string | undefined) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (token) {
+    window.localStorage.setItem(teacherAccessTokenStorageKey, token);
+    return;
+  }
+
+  window.localStorage.removeItem(teacherAccessTokenStorageKey);
+}
+
+export function clearTeacherAccessToken() {
+  writeTeacherAccessToken(undefined);
 }
 
 export function getStoredCustomerProfile(): CustomerProfile | undefined {
@@ -89,6 +128,23 @@ export async function completeGithubAuthentication(): Promise<GithubAuthenticati
   return customerApiRequest<GithubAuthenticationResult>("/auth/github/session", {
     method: "POST",
   });
+}
+
+export async function loginTeacher(loginId: string, password: string) {
+  if (!isCustomerApiEnabled()) {
+    window.localStorage.setItem(
+      customerAuthStorageKey,
+      JSON.stringify({ name: "Teacher", studentNo: "99990000" }),
+    );
+    return { role: "teacher" } satisfies TeacherLoginSession;
+  }
+
+  const session = await customerApiRequest<TeacherLoginSession>("/auth/teacher/login", {
+    body: { loginId, password },
+    method: "POST",
+  });
+  writeTeacherAccessToken(session.accessToken);
+  return session;
 }
 
 export async function completeStudentProfile(profile: CustomerProfile) {

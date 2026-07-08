@@ -1,14 +1,16 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
-import { navigationTabs } from "../entities/customer-home";
+import { isBoothFeatureOpen, navigationTabs } from "../entities/customer-home";
 import type { NavigationTab } from "../entities/customer-home";
 import { CustomerLoginPage } from "../pages/login/CustomerLoginPage";
+import { TeacherLoginPage } from "../pages/login/TeacherLoginPage";
 import {
   checkCustomerSession,
   completeGithubAuthentication,
   completeStudentProfile,
   hasStoredCustomerSession,
   isGithubLoginSuccessRedirect,
+  loginTeacher,
 } from "../shared/api/auth";
 import { isCustomerApiEnabled } from "../shared/api/client";
 import {
@@ -49,6 +51,10 @@ type CustomerPageId = NavigationTab["id"] | "history";
 type CustomerPointTabId = "daily" | "worldcup";
 type CustomerLoginStep = "github" | "profile";
 
+function isTeacherLoginPathname(pathname: string) {
+  return pathname === "/teacher" || pathname === "/teacher/";
+}
+
 function getPageIdFromPathname(pathname: string): CustomerPageId {
   if (pathname === "/booth" || pathname.startsWith("/booth/")) {
     return "map";
@@ -75,6 +81,9 @@ function getPointTabIdFromPathname(pathname: string): CustomerPointTabId {
 
 export function App() {
   const pathname = useCustomerPathname();
+  const browserPathname = typeof window === "undefined" ? pathname : window.location.pathname;
+  const isTeacherLoginPath =
+    isTeacherLoginPathname(pathname) || isTeacherLoginPathname(browserPathname);
   const [isAuthenticated, setIsAuthenticated] = useState(() => hasStoredCustomerSession());
   const [isAuthChecking, setIsAuthChecking] = useState(() => isCustomerApiEnabled());
   const [loginStep, setLoginStep] = useState<CustomerLoginStep>("github");
@@ -107,14 +116,14 @@ export function App() {
   );
 
   useEffect(() => {
-    if (isAuthChecking || isAuthenticated || pathname === "/login") {
+    if (isAuthChecking || isAuthenticated || pathname === "/login" || isTeacherLoginPath) {
       return;
     }
 
     if (!isAuthenticated) {
       pushCustomerPath("/login");
     }
-  }, [isAuthChecking, isAuthenticated, pathname]);
+  }, [isAuthChecking, isAuthenticated, isTeacherLoginPath, pathname]);
 
   useEffect(() => {
     if (!isCustomerApiEnabled() || isGithubLoginSuccessRedirect()) {
@@ -144,7 +153,9 @@ export function App() {
         if (result.status === "profile_required") {
           setLoginStep("profile");
 
-          if (getCurrentCustomerPathname() !== "/login") {
+          const currentPathname = getCurrentCustomerPathname();
+
+          if (currentPathname !== "/login" && !isTeacherLoginPathname(currentPathname)) {
             pushCustomerPath("/login");
           }
         }
@@ -191,8 +202,29 @@ export function App() {
       });
   }, [isAuthenticated, pathname]);
 
+  useEffect(() => {
+    if (isAuthChecking || !isAuthenticated || !isTeacherLoginPath) {
+      return;
+    }
+
+    pushCustomerPath("/");
+  }, [isAuthChecking, isAuthenticated, isTeacherLoginPath]);
+
+  useEffect(() => {
+    if (isAuthChecking || !isAuthenticated || activePageId !== "map" || isBoothFeatureOpen()) {
+      return;
+    }
+
+    const noticeTimer = window.setTimeout(showUnsupportedNotice, 0);
+    pushCustomerPath("/");
+
+    return () => {
+      window.clearTimeout(noticeTimer);
+    };
+  }, [activePageId, isAuthChecking, isAuthenticated]);
+
   const handleTabChange = (tab: NavigationTab) => {
-    if (tab.id === "map") {
+    if (tab.id === "map" && !isBoothFeatureOpen()) {
       showUnsupportedNotice();
       return;
     }
@@ -207,13 +239,23 @@ export function App() {
   };
 
   const isLoginPath = pathname === "/login";
-  const shouldRenderLogin = isLoginPath || !isAuthenticated;
-  const shouldShowBottomTabbar = !shouldRenderLogin && !pathname.startsWith("/booth/");
+  const shouldRenderTeacherLogin = isTeacherLoginPath && !isAuthenticated;
+  const shouldRenderLogin = !shouldRenderTeacherLogin && (isLoginPath || !isAuthenticated);
+  const shouldShowBottomTabbar =
+    !shouldRenderTeacherLogin && !shouldRenderLogin && !pathname.startsWith("/booth/");
 
   return (
     <CustomerAppShell>
       <div className="customer-route-transition" key={pathname}>
-        {shouldRenderLogin ? (
+        {shouldRenderTeacherLogin ? (
+          <TeacherLoginPage
+            onLogin={async ({ loginId, password }) => {
+              await loginTeacher(loginId, password);
+              setIsAuthenticated(true);
+              pushCustomerPath("/");
+            }}
+          />
+        ) : shouldRenderLogin ? (
           <CustomerLoginPage
             initialStep={loginStep}
             key={loginStep}

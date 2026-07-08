@@ -17,3 +17,7 @@ export type CustomerRankingDto = Record<string, unknown> & {
 export async function fetchCustomerUserRankings() {
   return customerApiRequest<CustomerRankingDto[]>("/customer/rankings?type=user");
 }
+
+export async function fetchCustomerBoothRankings() {
+  return customerApiRequest<CustomerRankingDto[]>("/customer/rankings?type=booth");
+}

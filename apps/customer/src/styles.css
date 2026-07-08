@@ -667,6 +667,13 @@ button {
   -webkit-line-clamp: 3;
 }
 
+.customer-booth-product-card__price {
+  position: relative;
+  color: var(--customer-booth-product-text);
+  font-size: 13px;
+  font-weight: 720;
+}
+
 .customer-booth-product-card__meta {
   position: relative;
   display: flex;
@@ -916,6 +923,13 @@ button {
   margin: 0;
   color: var(--daema-color-foreground-default);
   font-weight: 540;
+}
+
+.customer-booth-empty {
+  margin: 6px 0 22px;
+  color: var(--daema-color-foreground-muted);
+  font-size: 13px;
+  text-align: center;
 }
 
 .customer-booth-detail-options {
@@ -1231,6 +1245,22 @@ button {
   background: rgb(255 255 255 / 0.94);
   box-shadow: 0 18px 44px rgb(17 24 39 / 0.16);
   backdrop-filter: blur(14px) saturate(1.15);
+}
+
+.customer-booth-checkout-purchase:has(.customer-booth-checkout-error) {
+  height: auto;
+  gap: 6px;
+  border-radius: 24px;
+  padding: 8px;
+}
+
+.customer-booth-checkout-error {
+  margin: 0;
+  padding: 2px 10px 0;
+  color: #b42318;
+  font-size: 12px;
+  font-weight: 560;
+  text-align: center;
 }
 
 .customer-booth-checkout-purchase button,
@@ -5555,6 +5585,134 @@ button {
   text-align: center;
   transform: translateX(-50%);
   animation: customer-unsupported-floating-notice-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.teacher-login-page {
+  display: grid;
+  min-height: 100dvh;
+  align-items: center;
+  padding: 24px;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.82), rgb(246 248 251 / 0.96)),
+    var(--daema-color-background-canvas);
+}
+
+.teacher-login-panel {
+  display: grid;
+  gap: 18px;
+  width: min(100%, 420px);
+  margin: 0 auto;
+  border: 1px solid rgb(15 23 42 / 0.1);
+  border-radius: 18px;
+  background: rgb(255 255 255 / 0.94);
+  box-shadow: 0 22px 70px rgb(15 23 42 / 0.12);
+  padding: 26px;
+}
+
+.teacher-login-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #1f2937;
+}
+
+.teacher-login-brand span {
+  font-size: 19px;
+  font-weight: 860;
+}
+
+.teacher-login-brand strong {
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 780;
+}
+
+.teacher-login-panel h1 {
+  margin: 4px 0 0;
+  color: #111827;
+  font-size: 28px;
+  font-weight: 860;
+  letter-spacing: 0;
+}
+
+.teacher-login-panel p {
+  margin: -8px 0 0;
+  color: #667085;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.teacher-login-form {
+  display: grid;
+  gap: 14px;
+}
+
+.teacher-login-field {
+  display: grid;
+  gap: 8px;
+}
+
+.teacher-login-field span {
+  color: #475467;
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.teacher-login-field input {
+  min-height: 48px;
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #fff;
+  color: #111827;
+  padding: 0 14px;
+  font-size: 16px;
+}
+
+.teacher-login-field input:focus {
+  border-color: #2563eb;
+  outline: 4px solid #dbeafe;
+}
+
+.teacher-login-submit {
+  display: inline-flex;
+  min-height: 50px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 14px;
+  background: #111827;
+  color: #fff;
+  padding: 0 16px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.teacher-login-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.teacher-login-submit svg {
+  width: 18px;
+  height: 18px;
+}
+
+.teacher-login-error {
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fff5f5;
+  color: #b42318;
+  padding: 11px 12px;
+  font-size: 13px;
+  font-weight: 720;
 }
 
 @keyframes customer-unsupported-floating-notice-in {

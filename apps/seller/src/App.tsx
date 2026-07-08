@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Badge } from "@daema/ui/badge";
 import { Button } from "@daema/ui/button";
@@ -9,12 +9,28 @@ import {
   fetchSellerBooths,
   fetchSellerDashboard,
   fetchSellerMe,
+  fetchSellerOrders,
+  fetchSellerProducts,
+  fetchSellerSalesReport,
   isSellerApiEnabled,
   loginSeller,
   logoutSeller,
+  createSellerProduct,
+  createSellerProductImage,
   SellerApiError,
+  updateSellerOrderStatus,
+  updateSellerProduct,
+  uploadSellerFile,
 } from "./api";
-import type { SellerBooth, SellerDashboard, SellerMe } from "./api";
+import type {
+  SellerBooth,
+  SellerDashboard,
+  SellerMe,
+  SellerOrder,
+  SellerProduct,
+  SellerSalesReport,
+} from "./api";
+import { SellerSalesDashboard } from "./SalesDashboard";
 
 function errorMessage(error: unknown) {
   if (error instanceof SellerApiError) {
@@ -28,23 +44,38 @@ export function App() {
   const [session, setSession] = useState<SellerMe | undefined>();
   const [booths, setBooths] = useState<readonly SellerBooth[]>([]);
   const [dashboard, setDashboard] = useState<SellerDashboard | undefined>();
+  const [salesReport, setSalesReport] = useState<SellerSalesReport | undefined>();
+  const [products, setProducts] = useState<readonly SellerProduct[]>([]);
+  const [orders, setOrders] = useState<readonly SellerOrder[]>([]);
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [isChecking, setIsChecking] = useState(() => isSellerApiEnabled());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
-  const loadSellerData = async () => {
+  const loadSellerData = useCallback(async () => {
     const nextBooths = await fetchSellerBooths();
     setBooths(nextBooths);
 
     const firstBoothId = nextBooths[0]?.id;
     if (firstBoothId) {
-      setDashboard(await fetchSellerDashboard(firstBoothId));
+      const [nextDashboard, nextSalesReport, nextProducts, nextOrders] = await Promise.all([
+        fetchSellerDashboard(firstBoothId),
+        fetchSellerSalesReport(firstBoothId).catch(() => undefined),
+        fetchSellerProducts(firstBoothId).catch(() => []),
+        fetchSellerOrders(firstBoothId).catch(() => []),
+      ]);
+      setDashboard(nextDashboard);
+      setSalesReport(nextSalesReport);
+      setProducts(nextProducts);
+      setOrders(nextOrders);
     } else {
       setDashboard(undefined);
+      setSalesReport(undefined);
+      setProducts([]);
+      setOrders([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!isSellerApiEnabled()) {
@@ -72,7 +103,21 @@ export function App() {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [loadSellerData]);
+
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      void loadSellerData().catch(() => undefined);
+    }, 2_000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [loadSellerData, session]);
 
   const handleLogin = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -164,68 +209,69 @@ export function App() {
   const activeBooth = booths[0];
 
   return (
-    <main className="app app--dashboard">
-      <section className="seller-dashboard" aria-label="부스 워크스페이스">
-        <header className="seller-dashboard__header">
-          <div>
-            <Badge intent="success">Booth</Badge>
-            <h1>{activeBooth?.name ?? session.displayName ?? "부스 운영"}</h1>
-            <p>{session.loginId ?? session.displayName} 계정으로 로그인됨</p>
-          </div>
-          <Button
-            intent="secondary"
-            onClick={() => {
-              void logoutSeller().finally(() => {
-                setSession(undefined);
-                setBooths([]);
-                setDashboard(undefined);
-              });
-            }}
-            type="button"
-          >
-            로그아웃
-          </Button>
-        </header>
-
-        <section className="seller-metrics" aria-label="부스 지표">
-          <div>
-            <span>상품</span>
-            <strong>{(dashboard?.productCount ?? 0).toLocaleString("ko-KR")}</strong>
-          </div>
-          <div>
-            <span>주문</span>
-            <strong>{(dashboard?.orderCount ?? 0).toLocaleString("ko-KR")}</strong>
-          </div>
-          <div>
-            <span>결제</span>
-            <strong>{(dashboard?.paymentCount ?? 0).toLocaleString("ko-KR")}</strong>
-          </div>
-          <div>
-            <span>매출</span>
-            <strong>{dashboard?.revenue?.formatted ?? "0 DMC"}</strong>
-          </div>
-        </section>
-
-        <section className="seller-booths" aria-label="담당 부스">
-          <div className="seller-booths__header">
-            <h2>담당 부스</h2>
-            <span>{booths.length.toLocaleString("ko-KR")}개</span>
-          </div>
-          {booths.length > 0 ? (
-            <div className="seller-booth-list">
-              {booths.map((booth) => (
-                <article className="seller-booth" key={String(booth.id)}>
-                  <strong>{booth.name ?? booth.id}</strong>
-                  <span>{booth.locationLabel ?? "위치 미지정"}</span>
-                  <small>{booth.status ?? "active"}</small>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <p className="seller-empty">아직 연결된 부스가 없습니다.</p>
-          )}
-        </section>
-      </section>
-    </main>
+    <SellerSalesDashboard
+      booth={activeBooth}
+      booths={booths}
+      dashboard={dashboard}
+      onCreateProduct={async (boothId, input) => {
+        const created = await createSellerProduct(boothId, input);
+        await loadSellerData();
+        return created;
+      }}
+      onLogout={() => {
+        void logoutSeller().finally(() => {
+          setSession(undefined);
+          setBooths([]);
+          setDashboard(undefined);
+          setSalesReport(undefined);
+          setProducts([]);
+          setOrders([]);
+        });
+      }}
+      onUpdateOrderStatus={async (orderId, status) => {
+        const updated = await updateSellerOrderStatus(orderId, status);
+        await loadSellerData();
+        return updated;
+      }}
+      onUpdateProduct={async (productId, input) => {
+        const updated = await updateSellerProduct(productId, input);
+        await loadSellerData();
+        return updated;
+      }}
+      onUploadProductImage={async ({ boothId, file, productId }) => {
+        const uploadInput: Parameters<typeof uploadSellerFile>[0] = {
+          file,
+          purpose: "seller-product-image",
+        };
+        if (boothId) {
+          uploadInput.boothId = boothId;
+        }
+        if (productId) {
+          uploadInput.productId = productId;
+        }
+        const upload = await uploadSellerFile(uploadInput);
+        if (productId && upload.url) {
+          const imageInput: Parameters<typeof createSellerProductImage>[1] = {
+            imageUrl: upload.url,
+          };
+          if (upload.contentType) {
+            imageInput.contentType = upload.contentType;
+          }
+          if (upload.filename) {
+            imageInput.filename = upload.filename;
+          }
+          const uploadId = upload.id ?? upload.fileId;
+          if (uploadId) {
+            imageInput.uploadId = uploadId;
+          }
+          await createSellerProductImage(productId, imageInput);
+        }
+        return upload;
+      }}
+      orders={orders}
+      report={salesReport}
+      products={products}
+      session={session}
+    />
   );
 }
