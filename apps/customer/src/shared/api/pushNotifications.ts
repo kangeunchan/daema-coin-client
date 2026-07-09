@@ -1,14 +1,7 @@
 import { initializeApp } from "firebase/app";
 import type { FirebaseOptions } from "firebase/app";
 import { getApps } from "firebase/app";
-import {
-  getMessaging,
-  isSupported,
-  onMessage,
-  onRegistered,
-  onUnregistered,
-  register as registerMessaging,
-} from "firebase/messaging";
+import { getToken, getMessaging, isSupported, onMessage } from "firebase/messaging";
 import type { MessagePayload, Messaging } from "firebase/messaging";
 
 import { customerApiRequest, isCustomerApiEnabled } from "./client";
@@ -23,7 +16,7 @@ let listenersAttached = false;
 type CustomerPushTarget = {
   id?: string;
   target?: string;
-  targetType?: "fid" | "token";
+  targetType?: "token";
 };
 
 function firebaseConfig(): FirebaseOptions | undefined {
@@ -89,34 +82,59 @@ function attachMessagingListeners(messaging: Messaging) {
   }
   listenersAttached = true;
 
-  onRegistered(messaging, (fid) => {
-    void registerCustomerPushTarget(fid, "fid").catch(() => undefined);
-  });
-  onUnregistered(messaging, (fid) => {
-    void unregisterCustomerPushTarget(fid, "fid").catch(() => undefined);
-  });
   onMessage(messaging, (payload) => {
     showForegroundNotification(payload);
   });
 }
 
-async function registerCustomerPushTarget(target: string, targetType: "fid" | "token") {
+async function registerCustomerPushTarget(target: string) {
   const item = await customerApiRequest<CustomerPushTarget>("/customer/push-targets", {
-    body: { platform: "web", target, targetType },
+    body: { platform: "web", target, targetType: "token" },
     method: "POST",
   });
   window.localStorage.setItem(
     pushTargetStorageKey,
-    JSON.stringify({ id: item.id, target, targetType }),
+    JSON.stringify({ id: item.id, target, targetType: "token" }),
   );
 }
 
-async function unregisterCustomerPushTarget(target: string, targetType: "fid" | "token") {
+async function unregisterCustomerPushTarget(target: string) {
   await customerApiRequest<{ deleted?: boolean }>("/customer/push-targets", {
-    body: { target, targetType },
+    body: { target, targetType: "token" },
     method: "DELETE",
   });
   window.localStorage.removeItem(pushTargetStorageKey);
+}
+
+function previousPushTarget() {
+  const raw = window.localStorage.getItem(pushTargetStorageKey);
+  if (!raw) {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(raw) as CustomerPushTarget;
+  } catch {
+    return undefined;
+  }
+}
+
+async function syncCustomerPushToken(messaging: Messaging) {
+  const token = await getToken(messaging, {
+    serviceWorkerRegistration: await serviceWorkerRegistration(),
+    vapidKey: firebaseVapidKey(),
+  });
+  if (!token) {
+    return false;
+  }
+
+  const previous = previousPushTarget();
+  if (previous?.target && previous.target !== token) {
+    await unregisterCustomerPushTarget(previous.target).catch(() => undefined);
+  }
+
+  await registerCustomerPushTarget(token);
+  return true;
 }
 
 function showForegroundNotification(payload: MessagePayload) {
@@ -157,11 +175,9 @@ export async function enableCustomerPushNotifications() {
     return "not_configured" as const;
   }
 
-  await registerMessaging(messaging, {
-    serviceWorkerRegistration: await serviceWorkerRegistration(),
-    vapidKey: firebaseVapidKey(),
-  });
-  return "registered" as const;
+  return (await syncCustomerPushToken(messaging))
+    ? ("registered" as const)
+    : ("not_configured" as const);
 }
 
 export async function registerExistingCustomerPushTarget() {
@@ -174,8 +190,5 @@ export async function registerExistingCustomerPushTarget() {
     return;
   }
 
-  await registerMessaging(messaging, {
-    serviceWorkerRegistration: await serviceWorkerRegistration(),
-    vapidKey: firebaseVapidKey(),
-  });
+  await syncCustomerPushToken(messaging);
 }
