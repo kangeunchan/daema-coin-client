@@ -19,7 +19,7 @@ import { AppHeader } from "../../widgets/app-header";
 import { SinglePromoBanner } from "../../widgets/promo-banners";
 import { RecentTransactions } from "../../widgets/recent-transactions";
 
-const payCodeValue = "DAEMA-PAY:DMC:12480:USER-DEMO-0001";
+const payCodeValue = "USER-DEMO-0001";
 const payCodeDisplayValue = "8801 2480 0622 0001";
 
 function getDmcBalanceLabel(assets: readonly WalletAsset[]) {
@@ -42,12 +42,12 @@ function PayBarcode({ displayValue, value }: { displayValue: string; value: stri
   return (
     <div aria-label="대마페이 바코드" className="customer-pay-barcode" role="img">
       <Barcode
-        background="transparent"
+        background="#ffffff"
         displayValue={false}
-        height={76}
+        height={96}
         margin={0}
         value={value}
-        width={1.45}
+        width={2.4}
       />
       <span className="customer-pay-barcode__number">{displayValue}</span>
     </div>
@@ -118,7 +118,7 @@ export function CustomerPayPage() {
 
         setPayBarcode({
           displayValue: formatPayCodeDisplay(barcode.code),
-          value: `DAEMA-PAY:${barcode.code}`,
+          value: barcode.code,
         });
       })
       .catch(() => undefined);
