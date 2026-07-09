@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
-import { BellIcon, MagnifyingGlassIcon, ShoppingBagIcon } from "@heroicons/react/24/solid";
+import {
+  BellIcon,
+  MagnifyingGlassIcon,
+  ReceiptPercentIcon,
+  ShoppingBagIcon,
+} from "@heroicons/react/24/solid";
 import { IconButton } from "@daema/ui/icon-button";
+
+import { pushCustomerPath } from "../../shared/lib/customerNavigation";
 
 type AppHeaderProps = {
   action?: "notifications" | "cart";
@@ -10,6 +17,7 @@ type AppHeaderProps = {
 type HeaderActionButtonProps = {
   icon: typeof BellIcon;
   label: string;
+  onClick?: (() => void) | undefined;
 };
 
 export function CustomerBrandLink() {
@@ -21,9 +29,15 @@ export function CustomerBrandLink() {
   );
 }
 
-export function HeaderActionButton({ icon: Icon, label }: HeaderActionButtonProps) {
+export function HeaderActionButton({ icon: Icon, label, onClick }: HeaderActionButtonProps) {
   return (
-    <IconButton aria-label={label} className="customer-header__button" intent="ghost" type="button">
+    <IconButton
+      aria-label={label}
+      className="customer-header__button"
+      intent="ghost"
+      onClick={onClick}
+      type="button"
+    >
       <Icon aria-hidden="true" />
     </IconButton>
   );
@@ -35,7 +49,18 @@ export function HeaderActions({ action = "notifications" }: Pick<AppHeaderProps,
   return (
     <div className="customer-header__actions">
       <HeaderActionButton icon={MagnifyingGlassIcon} label="Search" />
-      <HeaderActionButton icon={ActionIcon} label={action === "cart" ? "Cart" : "Notifications"} />
+      <HeaderActionButton
+        icon={ActionIcon}
+        label={action === "cart" ? "Cart" : "Notifications"}
+        onClick={action === "cart" ? () => pushCustomerPath("/booth/cart") : undefined}
+      />
+      {action === "cart" ? (
+        <HeaderActionButton
+          icon={ReceiptPercentIcon}
+          label="Order history"
+          onClick={() => pushCustomerPath("/booth/orders")}
+        />
+      ) : null}
     </div>
   );
 }

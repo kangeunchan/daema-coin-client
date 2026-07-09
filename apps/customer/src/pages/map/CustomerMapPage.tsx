@@ -1,9 +1,10 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { ChatBubbleOvalLeftEllipsisIcon, EyeIcon, HeartIcon } from "@heroicons/react/24/outline";
+import { EyeIcon, HeartIcon } from "@heroicons/react/24/outline";
 import {
   ArrowLeftIcon,
   MagnifyingGlassIcon,
+  ReceiptPercentIcon,
   ShareIcon,
   ShoppingBagIcon,
 } from "@heroicons/react/24/solid";
@@ -11,14 +12,23 @@ import { IconButton } from "@daema/ui/icon-button";
 import { Surface } from "@daema/ui/surface";
 
 import {
+  createCustomerCartItem,
   createCustomerBoothOrder,
   createCustomerBoothProductView,
+  createCustomerFavorite,
+  deleteCustomerFavorite,
   fetchCustomerBoothHome,
+  fetchCustomerBoothOrders,
+  fetchCustomerCart,
+  fetchCustomerFavorites,
 } from "../../shared/api/booth";
 import type {
   CustomerBoothBannerDto,
   CustomerBoothCategoryDto,
+  CustomerBoothDto,
   CustomerBoothProductDto,
+  CustomerBoothOrderDto,
+  CustomerCartItemDto,
 } from "../../shared/api/booth";
 import { isCustomerApiEnabled } from "../../shared/api/client";
 import { ledgerAmountValue } from "../../shared/api/customerDataMappers";
@@ -103,6 +113,8 @@ export function CustomerMapPage() {
   const categories = apiCategories;
   const heroSlides = apiHeroSlides;
   const products = apiProducts;
+  const isCartPath = pathname === "/booth/cart";
+  const isOrdersPath = pathname === "/booth/orders";
   const selectedProductId = getProductIdFromPathname(pathname);
   const visibleCategoryId = categories.some((category) => category.id === activeCategoryId)
     ? activeCategoryId
@@ -146,7 +158,7 @@ export function CustomerMapPage() {
 
         const nextCategories = mapBoothCategories(home.categories);
         const nextHeroSlides = mapBoothHeroSlides(home.banners);
-        const nextProducts = mapBoothProducts(home.products);
+        const nextProducts = mapBoothProducts(home.products, home.booths);
 
         setApiCategories(nextCategories);
         setApiHeroSlides(nextHeroSlides);
@@ -181,6 +193,14 @@ export function CustomerMapPage() {
     return (
       <BoothProductDetail categories={categories} onBack={closeProductDetail} product={selectedProduct} />
     );
+  }
+
+  if (isCartPath) {
+    return <BoothCartPage onBack={closeProductDetail} />;
+  }
+
+  if (isOrdersPath) {
+    return <BoothOrdersPage onBack={closeProductDetail} />;
   }
 
   return (
@@ -364,6 +384,190 @@ function BoothRecommendations({
   );
 }
 
+type BoothCartPageProps = {
+  onBack: () => void;
+};
+
+function BoothCartPage({ onBack }: BoothCartPageProps) {
+  const [items, setItems] = useState<readonly CustomerCartItemDto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPayingId, setIsPayingId] = useState("");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    void fetchCustomerCart()
+      .then((nextItems) => {
+        if (!isCancelled) {
+          setItems(nextItems);
+        }
+      })
+      .catch((loadError) => {
+        if (!isCancelled) {
+          setError(loadError instanceof Error ? loadError.message : "장바구니를 불러오지 못했습니다.");
+        }
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  const payCartItem = (item: CustomerCartItemDto) => {
+    const productId = item.productId;
+    if (!productId) {
+      return;
+    }
+
+    void (async () => {
+      setIsPayingId(cartItemID(item));
+      setError("");
+      setNotice("");
+      try {
+        await createCustomerBoothOrder({ productId, quantity: cartItemQuantity(item) });
+        setNotice("주문이 접수됐습니다.");
+      } catch (payError) {
+        setError(payError instanceof Error ? payError.message : "주문을 완료하지 못했습니다.");
+      } finally {
+        setIsPayingId("");
+      }
+    })();
+  };
+
+  return (
+    <div className="customer-booth-page customer-booth-list-page">
+      <BoothSubpageHeader onBack={onBack} title="장바구니" />
+      <main className="customer-booth-list-content">
+        {isLoading ? <p className="customer-booth-empty">장바구니를 불러오는 중입니다.</p> : null}
+        {error ? <p className="customer-booth-list-message" data-error="true">{error}</p> : null}
+        {notice ? <p className="customer-booth-list-message">{notice}</p> : null}
+        {!isLoading && items.length === 0 ? (
+          <p className="customer-booth-empty">장바구니에 담긴 상품이 없습니다.</p>
+        ) : null}
+        <div className="customer-booth-list">
+          {items.map((item) => {
+            const itemId = cartItemID(item);
+            return (
+              <article className="customer-booth-list-item" key={itemId}>
+                <img alt="" aria-hidden="true" src={cartItemImage(item)} />
+                <div>
+                  <span>부스 상품</span>
+                  <strong>{cartItemTitle(item)}</strong>
+                  <small>{cartItemQuantity(item)}개</small>
+                </div>
+                <div className="customer-booth-list-item__side">
+                  <b>{formatDmc(cartItemTotalDmc(item))}</b>
+                  <button
+                    disabled={isPayingId === itemId}
+                    onClick={() => payCartItem(item)}
+                    type="button"
+                  >
+                    {isPayingId === itemId ? "주문 중" : "주문"}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+type BoothOrdersPageProps = {
+  onBack: () => void;
+};
+
+function BoothOrdersPage({ onBack }: BoothOrdersPageProps) {
+  const [orders, setOrders] = useState<readonly CustomerBoothOrderDto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    void fetchCustomerBoothOrders()
+      .then((nextOrders) => {
+        if (!isCancelled) {
+          setOrders(nextOrders);
+        }
+      })
+      .catch((loadError) => {
+        if (!isCancelled) {
+          setError(loadError instanceof Error ? loadError.message : "주문 내역을 불러오지 못했습니다.");
+        }
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  return (
+    <div className="customer-booth-page customer-booth-list-page">
+      <BoothSubpageHeader onBack={onBack} title="주문 내역" />
+      <main className="customer-booth-list-content">
+        {isLoading ? <p className="customer-booth-empty">주문 내역을 불러오는 중입니다.</p> : null}
+        {error ? <p className="customer-booth-list-message" data-error="true">{error}</p> : null}
+        {!isLoading && orders.length === 0 ? (
+          <p className="customer-booth-empty">아직 주문한 상품이 없습니다.</p>
+        ) : null}
+        <div className="customer-booth-list">
+          {orders.map((order) => (
+            <article className="customer-booth-list-item customer-booth-list-item--order" key={orderID(order)}>
+              <span className="customer-booth-list-item__receipt">
+                <ReceiptPercentIcon aria-hidden="true" />
+              </span>
+              <div>
+                <span>{formatOrderDate(order.createdAt)}</span>
+                <strong>{orderTitle(order)}</strong>
+                <small>{orderQuantity(order)}개 · {orderStatusLabel(order.status)}</small>
+              </div>
+              <div className="customer-booth-list-item__side">
+                <b>{formatDmc(orderTotalDmc(order))}</b>
+              </div>
+            </article>
+          ))}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+type BoothSubpageHeaderProps = {
+  onBack: () => void;
+  title: string;
+};
+
+function BoothSubpageHeader({ onBack, title }: BoothSubpageHeaderProps) {
+  return (
+    <header className="customer-booth-checkout-header">
+      <IconButton
+        aria-label="부스 목록으로 돌아가기"
+        className="customer-booth-checkout-header__button"
+        intent="ghost"
+        onClick={onBack}
+        type="button"
+      >
+        <ArrowLeftIcon aria-hidden="true" />
+      </IconButton>
+      <h1>{title}</h1>
+    </header>
+  );
+}
+
 type BoothProductDetailProps = {
   categories: readonly BoothCategory[];
   onBack: () => void;
@@ -375,6 +579,11 @@ function BoothProductDetail({ categories, onBack, product }: BoothProductDetailP
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isPaymentComplete, setIsPaymentComplete] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
+  const [isAddingCart, setIsAddingCart] = useState(false);
+  const [cartMessage, setCartMessage] = useState("");
+  const [cartError, setCartError] = useState("");
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isFavoriteSaving, setIsFavoriteSaving] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
   const categoryLabels = product.categories.flatMap((categoryId) => {
     const label = categories.find((category) => category.id === categoryId)?.label;
@@ -382,6 +591,68 @@ function BoothProductDetail({ categories, onBack, product }: BoothProductDetailP
   });
   const quantity = Math.min(Math.max(Number.parseInt(quantityText, 10) || 1, 1), 99);
   const totalPriceDmc = product.priceDmc * quantity;
+
+  useEffect(() => {
+    if (!isCustomerApiEnabled()) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    void fetchCustomerFavorites(product.id)
+      .then((items) => {
+        if (!isCancelled) {
+          setIsFavorite(items.some((item) => item.targetId === product.id));
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [product.id]);
+
+  const addToCart = () => {
+    void (async () => {
+      if (isAddingCart) {
+        return;
+      }
+      setIsAddingCart(true);
+      setCartMessage("");
+      setCartError("");
+      try {
+        await createCustomerCartItem({ productId: product.id, quantity });
+        setCartMessage("장바구니에 담았습니다.");
+      } catch (error) {
+        setCartError(error instanceof Error ? error.message : "장바구니에 담지 못했습니다.");
+      } finally {
+        setIsAddingCart(false);
+      }
+    })();
+  };
+
+  const toggleFavorite = () => {
+    void (async () => {
+      if (isFavoriteSaving) {
+        return;
+      }
+      setIsFavoriteSaving(true);
+      try {
+        if (isFavorite) {
+          await deleteCustomerFavorite(product.id);
+          setIsFavorite(false);
+        } else {
+          await createCustomerFavorite({ targetId: product.id, targetType: "product" });
+          setIsFavorite(true);
+        }
+      } catch {
+        setIsFavorite((current) => current);
+      } finally {
+        setIsFavoriteSaving(false);
+      }
+    })();
+  };
+
   const quantityInput = (
     <div className="customer-booth-detail-quantity">
       <label htmlFor="booth-product-quantity">개수</label>
@@ -480,9 +751,19 @@ function BoothProductDetail({ categories, onBack, product }: BoothProductDetailP
                 aria-label="장바구니"
                 className="customer-booth-detail-header__button"
                 intent="ghost"
+                onClick={() => pushCustomerPath("/booth/cart")}
                 type="button"
               >
                 <ShoppingBagIcon aria-hidden="true" />
+              </IconButton>
+              <IconButton
+                aria-label="주문 내역"
+                className="customer-booth-detail-header__button"
+                intent="ghost"
+                onClick={() => pushCustomerPath("/booth/orders")}
+                type="button"
+              >
+                <ReceiptPercentIcon aria-hidden="true" />
               </IconButton>
             </div>
           </header>
@@ -512,6 +793,12 @@ function BoothProductDetail({ categories, onBack, product }: BoothProductDetailP
         <p>{product.description}</p>
         {quantityInput}
         <dl className="customer-booth-detail-info">
+          {product.boothName || product.boothId ? (
+            <div>
+              <dt>판매 부스</dt>
+              <dd>{product.boothName ?? product.boothId}</dd>
+            </div>
+          ) : null}
           <div>
             <dt>결제수단</dt>
             <dd>대마페이</dd>
@@ -524,18 +811,23 @@ function BoothProductDetail({ categories, onBack, product }: BoothProductDetailP
       </section>
 
       <footer className="customer-booth-detail-purchase">
-        <button aria-label="찜하기" className="customer-booth-detail-purchase__icon" type="button">
+        <button
+          aria-label={isFavorite ? "찜 취소" : "찜하기"}
+          className="customer-booth-detail-purchase__icon"
+          data-active={isFavorite ? "true" : undefined}
+          disabled={isFavoriteSaving}
+          onClick={toggleFavorite}
+          type="button"
+        >
           <HeartIcon aria-hidden="true" />
         </button>
         <button
-          aria-label="문의하기"
-          className="customer-booth-detail-purchase__icon"
+          className="customer-booth-detail-purchase__cart"
+          disabled={isAddingCart}
+          onClick={addToCart}
           type="button"
         >
-          <ChatBubbleOvalLeftEllipsisIcon aria-hidden="true" />
-        </button>
-        <button className="customer-booth-detail-purchase__cart" type="button">
-          장바구니
+          {isAddingCart ? "담는 중" : "장바구니"}
         </button>
         <button
           className="customer-booth-detail-purchase__pay"
@@ -548,6 +840,14 @@ function BoothProductDetail({ categories, onBack, product }: BoothProductDetailP
         >
           구매하기
         </button>
+        {cartMessage || cartError ? (
+          <p
+            className="customer-booth-detail-purchase__message"
+            data-error={cartError ? "true" : undefined}
+          >
+            {cartError || cartMessage}
+          </p>
+        ) : null}
       </footer>
     </div>
   );
@@ -614,6 +914,77 @@ function numberValue(value: unknown) {
   return undefined;
 }
 
+function cartItemID(item: CustomerCartItemDto) {
+  return item.id ?? item.cartItemId ?? item.productId ?? cartItemTitle(item);
+}
+
+function cartItemTitle(item: CustomerCartItemDto) {
+  return item.title ?? item.name ?? String(item.productId ?? "부스 상품");
+}
+
+function cartItemImage(item: CustomerCartItemDto) {
+  return item.imageSrc ?? item.imageUrl ?? item.thumbnail ?? "/3dicons/coin.png";
+}
+
+function cartItemQuantity(item: CustomerCartItemDto) {
+  return Math.max(1, Math.trunc(numberValue(item.quantity) ?? 1));
+}
+
+function cartItemUnitDmc(item: CustomerCartItemDto) {
+  return ledgerAmountValue(item.unitAmount) || ledgerAmountValue(item.price) || 0;
+}
+
+function cartItemTotalDmc(item: CustomerCartItemDto) {
+  return cartItemUnitDmc(item) * cartItemQuantity(item);
+}
+
+function orderID(order: CustomerBoothOrderDto) {
+  return order.id ?? order.orderId ?? `${order.productId ?? orderTitle(order)}-${order.createdAt ?? ""}`;
+}
+
+function orderTitle(order: CustomerBoothOrderDto) {
+  return order.productName ?? order.item ?? String(order.productId ?? "부스 상품");
+}
+
+function orderQuantity(order: CustomerBoothOrderDto) {
+  return Math.max(1, Math.trunc(numberValue(order.quantity) ?? 1));
+}
+
+function orderTotalDmc(order: CustomerBoothOrderDto) {
+  return ledgerAmountValue(order.totalAmount) || ledgerAmountValue(order.amount) || 0;
+}
+
+function orderStatusLabel(status: string | undefined) {
+  switch (status) {
+    case "completed":
+      return "완료";
+    case "ready":
+      return "준비 완료";
+    case "cancelled":
+      return "취소";
+    case "paid":
+      return "결제 완료";
+    default:
+      return "주문 접수";
+  }
+}
+
+function formatOrderDate(value: string | undefined) {
+  if (!value) {
+    return "주문 일시 없음";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
 function productViewCount(item: CustomerBoothProductDto) {
   return Math.max(0, Math.trunc(numberValue(item.viewCount) ?? numberValue(item.view_count) ?? 0));
 }
@@ -622,7 +993,22 @@ function formatProductViews(count: number) {
   return `조회 ${count.toLocaleString("ko-KR")}회`;
 }
 
-function mapBoothProducts(items: readonly CustomerBoothProductDto[] | undefined) {
+function boothNameById(items: readonly CustomerBoothDto[] | undefined) {
+  return new Map(
+    (items ?? []).flatMap((item) => {
+      const id = item.id;
+      const name = item.name;
+      return id && name ? [[id, name] as const] : [];
+    }),
+  );
+}
+
+function mapBoothProducts(
+  items: readonly CustomerBoothProductDto[] | undefined,
+  booths?: readonly CustomerBoothDto[],
+) {
+  const boothNames = boothNameById(booths);
+
   return (items ?? [])
     .map((item): BoothProduct | undefined => {
       const id = item.id ?? item.productId;
@@ -655,6 +1041,10 @@ function mapBoothProducts(items: readonly CustomerBoothProductDto[] | undefined)
       };
       if (item.boothId) {
         product.boothId = item.boothId;
+        const boothName = boothNames.get(item.boothId);
+        if (boothName) {
+          product.boothName = boothName;
+        }
       }
       if (item.rating) {
         product.rating = item.rating;

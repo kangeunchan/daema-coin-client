@@ -1013,10 +1013,10 @@ button {
   z-index: 30;
   display: grid;
   height: 60px;
-  grid-template-columns: 42px 42px minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: 42px minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
   gap: 8px;
-  overflow: hidden;
+  overflow: visible;
   padding: 5px;
   border: 1px solid transparent;
   border-radius: var(--daema-radius-full);
@@ -1092,6 +1092,18 @@ button {
   color: var(--daema-color-foreground-subtle);
 }
 
+.customer-booth-detail-purchase__icon[data-active="true"] {
+  background: #fff1f2;
+  color: #e11d48;
+}
+
+.customer-booth-detail-purchase__icon:disabled,
+.customer-booth-detail-purchase__cart:disabled,
+.customer-booth-detail-purchase__pay:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
 .customer-booth-detail-purchase__icon svg {
   width: 23px;
   height: 23px;
@@ -1106,6 +1118,161 @@ button {
   background: var(--daema-color-action-primary);
   color: #fff;
   box-shadow: 0 10px 22px rgb(37 99 235 / 0.2);
+}
+
+.customer-booth-detail-purchase__message {
+  position: absolute;
+  right: 12px;
+  bottom: calc(100% + 8px);
+  left: 12px;
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background: rgb(239 246 255 / 0.96);
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 620;
+  line-height: 1.2;
+  text-align: center;
+  box-shadow: 0 12px 30px rgb(15 23 42 / 0.12);
+}
+
+.customer-booth-detail-purchase__message[data-error="true"] {
+  border-color: #fecdd3;
+  background: rgb(255 241 242 / 0.96);
+  color: #be123c;
+}
+
+.customer-booth-list-page {
+  display: grid;
+  align-content: start;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 0 20px 96px;
+  background: #fff;
+}
+
+.customer-booth-list-content {
+  display: grid;
+  gap: 14px;
+}
+
+.customer-booth-list {
+  display: grid;
+  gap: 10px;
+}
+
+.customer-booth-list-message {
+  margin: 0;
+  padding: 11px 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 560;
+  line-height: 1.35;
+}
+
+.customer-booth-list-message[data-error="true"] {
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.customer-booth-list-item {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #e6ebf2;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.customer-booth-list-item--order {
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+}
+
+.customer-booth-list-item img,
+.customer-booth-list-item__receipt {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: #eef2f7;
+  object-fit: cover;
+}
+
+.customer-booth-list-item__receipt {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  background: var(--daema-color-background-brand-soft);
+  color: var(--daema-color-action-primary);
+}
+
+.customer-booth-list-item__receipt svg {
+  width: 22px;
+  height: 22px;
+}
+
+.customer-booth-list-item > div {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.customer-booth-list-item span,
+.customer-booth-list-item small {
+  overflow: hidden;
+  color: var(--daema-color-foreground-subtle);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customer-booth-list-item strong {
+  overflow: hidden;
+  color: var(--daema-color-foreground-default);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customer-booth-list-item__side {
+  justify-items: end;
+}
+
+.customer-booth-list-item__side b {
+  color: var(--daema-color-foreground-default);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.customer-booth-list-item__side button {
+  min-width: 58px;
+  height: 30px;
+  border: 0;
+  border-radius: var(--daema-radius-full);
+  background: var(--daema-color-action-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.customer-booth-list-item__side button:disabled {
+  cursor: wait;
+  opacity: 0.68;
 }
 
 .customer-booth-checkout-page {
@@ -1463,7 +1630,7 @@ button {
   }
 
   .customer-booth-detail-purchase {
-    grid-template-columns: 40px 40px minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: 40px minmax(0, 1fr) minmax(0, 1fr);
     gap: 8px;
     right: auto;
     width: calc(100vw - 36px);

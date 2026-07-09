@@ -116,15 +116,3 @@ export const recentTransactions = [
   { meta: "적립 ㅣ 코드 작성 혜택", amount: "금액 보기", time: "2일 전" },
   { meta: "사용 ㅣ 포인트 교환", amount: "금액 보기", time: "3일 전" },
 ] satisfies readonly RecentTransaction[];
-
-export const personalPodiumRankings = [
-  { name: "이서연", points: 90400, rank: 2, tone: "#64748b" },
-  { name: "김민준", points: 96200, rank: 1, tone: "#f59e0b" },
-  { name: "박지호", points: 88100, rank: 3, tone: "#10b981" },
-] satisfies readonly RankingEntry[];
-
-export const boothPodiumRankings = [
-  { name: "코딩 챌린지 부스", points: 1518800, rank: 2, tone: "#8b5cf6" },
-  { name: "월드컵 응원 부스", points: 1842000, rank: 1, tone: "#ef4444" },
-  { name: "출석 리워드 부스", points: 1213000, rank: 3, tone: "#10b981" },
-] satisfies readonly RankingEntry[];

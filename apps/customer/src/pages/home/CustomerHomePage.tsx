@@ -3,10 +3,8 @@ import { Surface } from "@daema/ui/surface";
 
 import {
   boothFeatureOpenAt,
-  boothPodiumRankings,
   festivalBanner,
   isBoothFeatureOpen,
-  personalPodiumRankings,
   promoBanners,
   recentTransactions,
   shortcuts,
@@ -102,11 +100,9 @@ export function CustomerHomePage() {
           .sort((a, b) => a.rank - b.rank)
           .slice(0, 3);
 
-        setApiPersonalRankings(
-          mappedPersonalRankings.length > 0 ? mappedPersonalRankings : personalPodiumRankings,
-        );
+        setApiPersonalRankings(mappedPersonalRankings);
       } else {
-        setApiPersonalRankings(personalPodiumRankings);
+        setApiPersonalRankings([]);
       }
 
       if (boothRankingsResult.status === "fulfilled") {
@@ -116,14 +112,12 @@ export function CustomerHomePage() {
           .sort((a, b) => a.rank - b.rank)
           .slice(0, 3);
 
-        setApiBoothRankings(
-          mappedBoothRankings.length > 0 ? mappedBoothRankings : boothPodiumRankings,
-        );
+        setApiBoothRankings(mappedBoothRankings);
 
         return;
       }
 
-      setApiBoothRankings(boothPodiumRankings);
+      setApiBoothRankings([]);
     });
 
     return () => {
@@ -133,12 +127,8 @@ export function CustomerHomePage() {
 
   const walletAssetSource = isApiMode ? (apiWalletAssets ?? emptyWalletAssets) : walletAssets;
   const recentTransactionSource = isApiMode ? (apiRecentTransactions ?? []) : recentTransactions;
-  const personalRankingSource = isApiMode
-    ? (apiPersonalRankings ?? personalPodiumRankings)
-    : personalPodiumRankings;
-  const boothRankingSource = isApiMode
-    ? (apiBoothRankings ?? boothPodiumRankings)
-    : boothPodiumRankings;
+  const personalRankingSource = isApiMode ? (apiPersonalRankings ?? []) : [];
+  const boothRankingSource = isApiMode ? (apiBoothRankings ?? []) : [];
   const shortcutSource = shortcuts.map((shortcut) =>
     shortcut.path === "/booth" ? { ...shortcut, unsupported: !isBoothOpen } : shortcut,
   );

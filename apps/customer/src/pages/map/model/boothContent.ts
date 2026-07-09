@@ -8,6 +8,7 @@ export type BoothCategory = {
 
 export type BoothProduct = {
   boothId?: string;
+  boothName?: string;
   categories: BoothCategoryId[];
   description: string;
   id: string;
@@ -22,6 +23,10 @@ export type BoothProduct = {
 
 export function getProductIdFromPathname(pathname: string) {
   const [, productId] = pathname.match(/^\/booth\/([^/]+)/) ?? [];
+
+  if (productId === "cart" || productId === "orders") {
+    return undefined;
+  }
 
   return productId ? decodeURIComponent(productId) : undefined;
 }
