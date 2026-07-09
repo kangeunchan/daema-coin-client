@@ -584,9 +584,6 @@ export function SellerSalesDashboard({
         setPayBarcode(barcode);
         setPayCode(barcode.code ?? code);
         setPayStatusMessage("사용 가능한 바코드입니다.");
-        if (isPaymentOnlyMode) {
-          setPaymentStep(2);
-        }
       } catch (error) {
         setPayBarcode(undefined);
         setPayError(sellerDashboardErrorMessage(error));
@@ -702,6 +699,10 @@ export function SellerSalesDashboard({
     })();
   };
 
+  const openPaymentRoute = () => {
+    window.location.assign("/pay");
+  };
+
   return (
     <div className="sales-day-page" data-mode={isPaymentOnlyMode ? "payment-only" : undefined}>
       {!isPaymentOnlyMode ? (
@@ -745,7 +746,7 @@ export function SellerSalesDashboard({
             <button
               aria-current={activeView === "payment" ? "page" : undefined}
               aria-label="바코드 결제"
-              onClick={() => setActiveView("payment")}
+              onClick={openPaymentRoute}
               type="button"
             >
               결제
@@ -1238,9 +1239,6 @@ export function SellerSalesDashboard({
                             setPayQuantity(1);
                             setPayError("");
                             setPayStatusMessage("");
-                            if (isPaymentOnlyMode) {
-                              setPaymentStep(1);
-                            }
                           }}
                           type="button"
                         >

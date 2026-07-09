@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, test } from "vitest";
 
 import { App } from "./App";
@@ -139,4 +139,54 @@ test("renders the sales dashboard workspace", () => {
 
   fireEvent.click(screen.getByRole("button", { name: "정산" }));
   expect(screen.getByRole("heading", { name: "오늘 판매 대금을 확인하세요" })).toBeVisible();
+});
+
+test("advances the mobile payment route only from the next step buttons", async () => {
+  const { container } = render(
+    <SellerSalesDashboard
+      booth={{ id: "booth-1", name: "청량 카페" }}
+      booths={[{ id: "booth-1", name: "청량 카페" }]}
+      mode="payment-only"
+      onLookupPayBarcode={async (code) => ({
+        code,
+        customerId: "CUST-001",
+      })}
+      products={[
+        {
+          id: "PRD-01",
+          price: 7_000,
+          sold: 12,
+          status: "판매 중",
+          stock: 10,
+          title: "딸기 소다",
+        },
+      ]}
+      session={{ displayName: "카페 매니저", loginId: "cafe.manager" }}
+    />,
+  );
+
+  const slider = container.querySelector(".sales-barcode-payment");
+  const view = within(container);
+
+  expect(slider).toHaveAttribute("data-step", "0");
+
+  fireEvent.click(view.getByRole("button", { name: /딸기 소다/ }));
+
+  expect(slider).toHaveAttribute("data-step", "0");
+
+  fireEvent.click(view.getAllByRole("button", { name: "다음" })[0]!);
+
+  expect(slider).toHaveAttribute("data-step", "1");
+
+  fireEvent.change(view.getByRole("textbox", { name: "바코드 번호" }), {
+    target: { value: "DAEMA-PAY:CUST-001" },
+  });
+  fireEvent.click(view.getByRole("button", { name: "바코드 조회" }));
+
+  expect((await view.findAllByText("CUST-001"))[0]).toBeVisible();
+  expect(slider).toHaveAttribute("data-step", "1");
+
+  fireEvent.click(view.getAllByRole("button", { name: "다음" })[1]!);
+
+  expect(slider).toHaveAttribute("data-step", "2");
 });
