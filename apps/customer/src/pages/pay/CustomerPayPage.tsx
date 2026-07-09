@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { BoltIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import { IconButton } from "@daema/ui/icon-button";
 import { Surface } from "@daema/ui/surface";
-import Barcode from "react-barcode";
+import { QRCodeSVG } from "qrcode.react";
 
 import { promoBanners, recentTransactions } from "../../entities/customer-home";
 import type { RecentTransaction, WalletAsset } from "../../entities/customer-home";
@@ -19,7 +19,7 @@ import { AppHeader } from "../../widgets/app-header";
 import { SinglePromoBanner } from "../../widgets/promo-banners";
 import { RecentTransactions } from "../../widgets/recent-transactions";
 
-const payCodeValue = "USER-DEMO-0001";
+const payCodeValue = "DAEMA-PAY:USER-DEMO-0001";
 const payCodeDisplayValue = "8801 2480 0622 0001";
 
 function getDmcBalanceLabel(assets: readonly WalletAsset[]) {
@@ -40,16 +40,9 @@ function formatPayCodeDisplay(value: string) {
 
 function PayBarcode({ displayValue, value }: { displayValue: string; value: string }) {
   return (
-    <div aria-label="대마페이 바코드" className="customer-pay-barcode" data-scan-value={value} role="img">
+    <div aria-label="대마페이 QR" className="customer-pay-qr" data-scan-value={value} role="img">
       <div className="customer-pay-barcode__content">
-        <Barcode
-          background="#ffffff"
-          displayValue={false}
-          height={96}
-          margin={0}
-          value={value}
-          width={2.4}
-        />
+        <QRCodeSVG bgColor="#ffffff" fgColor="#111827" level="M" marginSize={3} value={value} />
         <span className="customer-pay-barcode__number">{displayValue}</span>
       </div>
     </div>
@@ -120,7 +113,7 @@ export function CustomerPayPage() {
 
         setPayBarcode({
           displayValue: formatPayCodeDisplay(barcode.code),
-          value: barcode.code,
+          value: `DAEMA-PAY:${barcode.code}`,
         });
       })
       .catch(() => undefined);

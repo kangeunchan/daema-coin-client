@@ -45,6 +45,7 @@ import { getBarcodeScanBox } from "./payScanner";
 
 const payScannerElementId = "seller-pay-camera-reader";
 const paymentStepLabels = ["상품", "스캔", "승인"] as const;
+const payQrPrefix = "DAEMA-PAY:";
 
 const productCategoryOptions = [
   { label: "음식", value: "food" },
@@ -307,10 +308,13 @@ function formatPaymentTime(value: string | undefined) {
 }
 
 function normalizePayBarcodeInput(value: string) {
-  const trimmed = value.trim().replace(/^DAEMA-PAY:/i, "");
-  const normalized = trimmed.includes(":") ? trimmed.split(":").at(-1)! : trimmed;
+  const trimmed = value.trim();
+  if (!trimmed.toUpperCase().startsWith(payQrPrefix)) {
+    return "";
+  }
+  const normalized = trimmed.slice(payQrPrefix.length).trim();
 
-  return normalized.replace(/[^a-zA-Z0-9_-]/g, "");
+  return /^[a-zA-Z0-9_-]+$/.test(normalized) ? normalized : "";
 }
 
 function formatBarcodeOwner(barcode: SellerPayBarcode | undefined) {
@@ -578,12 +582,12 @@ export function SellerSalesDashboard({
   const lookupPayBarcode = (rawCode = payCode) => {
     void (async () => {
       if (!onLookupPayBarcode) {
-        setPayError("바코드 조회 API가 연결되지 않았습니다.");
+        setPayError("QR 조회 API가 연결되지 않았습니다.");
         return;
       }
       const code = normalizePayBarcodeInput(rawCode);
       if (!code) {
-        setPayError("바코드 번호를 입력하세요.");
+        setPayError("대마페이 QR만 스캔하거나 붙여넣으세요.");
         return;
       }
       setIsLookingUpPayBarcode(true);
@@ -617,11 +621,6 @@ export function SellerSalesDashboard({
         const scanner = new Html5Qrcode(payScannerElementId, {
           formatsToSupport: [
             Html5QrcodeSupportedFormats.QR_CODE,
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.ITF,
           ],
           useBarCodeDetectorIfSupported: true,
           verbose: false,
@@ -644,7 +643,7 @@ export function SellerSalesDashboard({
             setPayCode(code);
             setPayBarcode(undefined);
             setPayScannerError("");
-            setPayStatusMessage("바코드를 스캔했습니다. 고객 정보를 조회합니다.");
+            setPayStatusMessage("대마페이 QR을 스캔했습니다. 고객 정보를 조회합니다.");
             stopPayCameraScanner();
             lookupPayBarcode(code);
           },
@@ -666,7 +665,7 @@ export function SellerSalesDashboard({
         setPayError("결제 승인 API가 연결되지 않았습니다.");
         return;
       }
-      const code = normalizePayBarcodeInput(payBarcode?.code ?? payCode);
+      const code = payBarcode?.code ?? normalizePayBarcodeInput(payCode);
       if (!code) {
         setPayError("먼저 바코드를 조회하세요.");
         return;
@@ -1297,12 +1296,12 @@ export function SellerSalesDashboard({
                 ) : null}
               </section>
 
-              <section className="sales-barcode-payment__panel" aria-label="바코드 조회">
+              <section className="sales-barcode-payment__panel" aria-label="QR 조회">
                 <div className="sales-section-heading">
                   <div>
                     <span>2단계</span>
-                    <h2>바코드 확인</h2>
-                    <p>카메라로 스캔하거나 스캐너 입력을 그대로 붙여넣을 수 있어요.</p>
+                    <h2>QR 확인</h2>
+                    <p>고객 대마페이 QR을 카메라로 스캔하세요.</p>
                   </div>
                 </div>
                 <div className="sales-payment-scanner">
@@ -1312,7 +1311,7 @@ export function SellerSalesDashboard({
                       <div className="sales-payment-scanner__placeholder">
                         <Camera aria-hidden="true" />
                         <strong>카메라 스캔 대기</strong>
-                        <span>고객 결제 QR 또는 바코드를 화면 중앙에 맞추세요.</span>
+                        <span>고객 결제 QR을 화면 중앙에 맞추세요.</span>
                       </div>
                     ) : null}
                   </div>
@@ -1343,7 +1342,7 @@ export function SellerSalesDashboard({
                   </div>
                 </div>
                 <label className="sales-payment-field">
-                  <span>바코드 번호</span>
+                  <span>QR 데이터</span>
                   <div>
                     <CreditCard aria-hidden="true" />
                     <input
@@ -1372,7 +1371,7 @@ export function SellerSalesDashboard({
                   onClick={() => lookupPayBarcode()}
                   type="button"
                 >
-                  {isLookingUpPayBarcode ? "조회 중" : "바코드 조회"}
+                  {isLookingUpPayBarcode ? "조회 중" : "QR 조회"}
                 </button>
 
                 <div className="sales-payment-customer" data-active={payBarcode ? "true" : undefined}>

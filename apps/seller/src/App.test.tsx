@@ -179,13 +179,13 @@ test("advances the mobile payment route only from the next step buttons", async 
 
   expect(slider).toHaveAttribute("data-step", "1");
   await waitFor(() => {
-    expect(view.getByRole("textbox", { name: "바코드 번호" })).toHaveFocus();
+    expect(view.getByRole("textbox", { name: "QR 데이터" })).toHaveFocus();
   });
 
-  fireEvent.change(view.getByRole("textbox", { name: "바코드 번호" }), {
-    target: { value: "DAEMA-PAY:DMC:12480:CUST-001" },
+  fireEvent.change(view.getByRole("textbox", { name: "QR 데이터" }), {
+    target: { value: "DAEMA-PAY:CUST-001" },
   });
-  fireEvent.click(view.getByRole("button", { name: "바코드 조회" }));
+  fireEvent.click(view.getByRole("button", { name: "QR 조회" }));
 
   expect((await view.findAllByText("CUST-001"))[0]).toBeVisible();
   expect(slider).toHaveAttribute("data-step", "1");
@@ -195,14 +195,14 @@ test("advances the mobile payment route only from the next step buttons", async 
   expect(slider).toHaveAttribute("data-step", "2");
 });
 
-test("uses a portrait scan box for rotated customer pay barcodes", () => {
+test("uses a square scan box for customer pay QR codes", () => {
   const scanBox = getBarcodeScanBox(390, 248);
 
-  expect(scanBox.height).toBeGreaterThan(scanBox.width);
-  expect(scanBox.width).toBeGreaterThanOrEqual(132);
+  expect(scanBox.height).toBe(scanBox.width);
+  expect(scanBox.width).toBeGreaterThanOrEqual(180);
 });
 
-test("looks up the short customer barcode value emitted by the customer app", async () => {
+test("looks up only the prefixed customer QR payload", async () => {
   const lookedUpCodes: string[] = [];
   const { container } = render(
     <SellerSalesDashboard
@@ -233,10 +233,18 @@ test("looks up the short customer barcode value emitted by the customer app", as
 
   fireEvent.click(view.getByRole("button", { name: /딸기 소다/ }));
   fireEvent.click(view.getAllByRole("button", { name: "다음" })[0]!);
-  fireEvent.change(await view.findByRole("textbox", { name: "바코드 번호" }), {
+  fireEvent.change(await view.findByRole("textbox", { name: "QR 데이터" }), {
     target: { value: "USER-DEMO-0001" },
   });
-  fireEvent.click(view.getByRole("button", { name: "바코드 조회" }));
+  fireEvent.click(view.getByRole("button", { name: "QR 조회" }));
+
+  expect(lookedUpCodes).toEqual([]);
+  expect(await view.findByText("대마페이 QR만 스캔하거나 붙여넣으세요.")).toBeVisible();
+
+  fireEvent.change(view.getByRole("textbox", { name: "QR 데이터" }), {
+    target: { value: "DAEMA-PAY:USER-DEMO-0001" },
+  });
+  fireEvent.click(view.getByRole("button", { name: "QR 조회" }));
 
   await waitFor(() => expect(lookedUpCodes).toEqual(["USER-DEMO-0001"]));
   expect((await view.findAllByText("USER-DEMO-0001"))[0]).toBeVisible();

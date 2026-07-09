@@ -66,14 +66,14 @@ test("moves between customer tab pages", async () => {
   expect(await screen.findByRole("region", { name: "월드컵 포인트" })).toBeVisible();
 });
 
-test("renders the pay barcode with the short scannable code", async () => {
+test("renders the pay QR with the prefixed scannable payload", async () => {
   render(<App />);
   await login();
   fireEvent.click(screen.getByRole("link", { name: "페이" }));
 
-  const barcode = await screen.findByRole("img", { name: "대마페이 바코드" });
+  const barcode = await screen.findByRole("img", { name: "대마페이 QR" });
 
-  expect(barcode).toHaveAttribute("data-scan-value", "USER-DEMO-0001");
+  expect(barcode).toHaveAttribute("data-scan-value", "DAEMA-PAY:USER-DEMO-0001");
   expect(barcode.querySelector("svg")).toBeInTheDocument();
 });
 
