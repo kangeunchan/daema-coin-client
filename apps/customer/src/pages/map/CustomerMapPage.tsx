@@ -245,7 +245,7 @@ export function CustomerMapPage() {
                 role="tab"
                 type="button"
               >
-                {tab.label}
+                <span>{tab.label}</span>
               </button>
             ))}
           </div>

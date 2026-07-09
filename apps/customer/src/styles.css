@@ -392,6 +392,7 @@ button {
 
 .customer-booth-categories {
   display: flex;
+  flex-wrap: nowrap;
   min-width: 0;
   gap: 4px;
   overflow-x: auto;
@@ -407,10 +408,14 @@ button {
 }
 
 .customer-booth-category {
+  display: inline-flex;
   flex: 0 0 auto;
-  min-width: 96px;
-  max-width: 190px;
+  width: max-content;
+  min-width: 0;
+  max-width: min(48vw, 190px);
   height: 32px;
+  align-items: center;
+  justify-content: center;
   padding: 0 13px;
   border: 0;
   border-radius: var(--daema-radius-full);
@@ -422,13 +427,19 @@ button {
   line-height: 1;
   overflow: hidden;
   scroll-snap-align: start;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   transition:
     background 180ms ease,
     box-shadow 180ms ease,
     color 180ms ease,
     transform 180ms var(--daema-ease-standard);
+}
+
+.customer-booth-category span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .customer-booth-category:active {
