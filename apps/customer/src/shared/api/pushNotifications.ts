@@ -12,6 +12,7 @@ const serviceWorkerPath = "/firebase-messaging-sw.js";
 let messagingPromise: Promise<Messaging | undefined> | undefined;
 let serviceWorkerRegistrationPromise: Promise<ServiceWorkerRegistration> | undefined;
 let listenersAttached = false;
+let entryGestureListenerAttached = false;
 
 type CustomerPushTarget = {
   id?: string;
@@ -193,6 +194,33 @@ export async function registerExistingCustomerPushTarget() {
   await syncCustomerPushToken(messaging);
 }
 
+function requestCustomerPushOnNextGesture() {
+  if (
+    entryGestureListenerAttached ||
+    !notificationSupported() ||
+    Notification.permission !== "default"
+  ) {
+    return;
+  }
+
+  entryGestureListenerAttached = true;
+
+  let cleanup: () => void = () => undefined;
+  const request = () => {
+    cleanup();
+    void enableCustomerPushNotifications().catch(() => undefined);
+  };
+
+  cleanup = () => {
+    entryGestureListenerAttached = false;
+    window.removeEventListener("pointerdown", request, true);
+    window.removeEventListener("keydown", request, true);
+  };
+
+  window.addEventListener("pointerdown", request, { capture: true, once: true });
+  window.addEventListener("keydown", request, { capture: true, once: true });
+}
+
 export async function setupCustomerPushNotificationsOnEntry() {
   if (!notificationSupported()) {
     return "unsupported" as const;
@@ -204,7 +232,8 @@ export async function setupCustomerPushNotificationsOnEntry() {
   }
 
   if (Notification.permission === "default") {
-    return enableCustomerPushNotifications();
+    requestCustomerPushOnNextGesture();
+    return "deferred" as const;
   }
 
   return Notification.permission;

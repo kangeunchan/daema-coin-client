@@ -1,4 +1,5 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { Component, lazy, Suspense, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 
 import { isBoothFeatureOpen, navigationTabs } from "../entities/customer-home";
 import type { NavigationTab } from "../entities/customer-home";
@@ -49,6 +50,62 @@ const CustomerTabPage = lazy(() =>
 type CustomerPageId = NavigationTab["id"] | "history";
 type CustomerPointTabId = "daily" | "worldcup";
 type CustomerLoginStep = "github" | "profile";
+
+const dynamicImportReloadStorageKey = "daema.customer.dynamicImportReloadAt";
+const dynamicImportReloadRetryMs = 30_000;
+
+function isDynamicImportError(error: unknown) {
+  const message = error instanceof Error ? `${error.name} ${error.message}` : String(error);
+
+  return [
+    "dynamically imported module",
+    "Failed to fetch dynamically imported module",
+    "Importing a module script failed",
+    "MIME type",
+  ].some((fragment) => message.includes(fragment));
+}
+
+class CustomerRouteErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
+  override state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  override componentDidCatch(error: unknown) {
+    if (typeof window === "undefined" || !isDynamicImportError(error)) {
+      return;
+    }
+
+    const lastReloadAt = Number(window.sessionStorage.getItem(dynamicImportReloadStorageKey) ?? 0);
+    const now = Date.now();
+
+    if (now - lastReloadAt < dynamicImportReloadRetryMs) {
+      return;
+    }
+
+    window.sessionStorage.setItem(dynamicImportReloadStorageKey, String(now));
+    window.location.reload();
+  }
+
+  override render() {
+    if (this.state.hasError) {
+      return (
+        <div aria-live="polite" className="customer-route-error" role="status">
+          <p>페이지를 다시 불러오지 못했습니다.</p>
+          <button type="button" onClick={() => window.location.reload()}>
+            새로고침
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 function isTeacherLoginPathname(pathname: string) {
   return pathname === "/teacher" || pathname === "/teacher/";
@@ -289,24 +346,26 @@ export function App() {
             }}
           />
         ) : (
-          <Suspense fallback={<div aria-label="페이지 불러오는 중" role="status" />}>
-            {activePageId === "home" ? <CustomerHomePage /> : null}
-            {activePageId === "pay" ? <CustomerPayPage /> : null}
-            {activePageId === "map" ? <CustomerMapPage /> : null}
-            {activePageId === "points" ? (
-              <CustomerPointsPage activeTabId={activePointTabId} />
-            ) : null}
-            {activePageId === "all" ? <CustomerAllPage /> : null}
-            {activePageId === "history" ? <CustomerHistoryPage /> : null}
-            {activePageId !== "home" &&
-            activePageId !== "pay" &&
-            activePageId !== "map" &&
-            activePageId !== "points" &&
-            activePageId !== "all" &&
-            activePageId !== "history" ? (
-              <CustomerTabPage />
-            ) : null}
-          </Suspense>
+          <CustomerRouteErrorBoundary key={pathname}>
+            <Suspense fallback={<div aria-label="페이지 불러오는 중" role="status" />}>
+              {activePageId === "home" ? <CustomerHomePage /> : null}
+              {activePageId === "pay" ? <CustomerPayPage /> : null}
+              {activePageId === "map" ? <CustomerMapPage /> : null}
+              {activePageId === "points" ? (
+                <CustomerPointsPage activeTabId={activePointTabId} />
+              ) : null}
+              {activePageId === "all" ? <CustomerAllPage /> : null}
+              {activePageId === "history" ? <CustomerHistoryPage /> : null}
+              {activePageId !== "home" &&
+              activePageId !== "pay" &&
+              activePageId !== "map" &&
+              activePageId !== "points" &&
+              activePageId !== "all" &&
+              activePageId !== "history" ? (
+                <CustomerTabPage />
+              ) : null}
+            </Suspense>
+          </CustomerRouteErrorBoundary>
         )}
       </div>
       {shouldShowBottomTabbar ? (
