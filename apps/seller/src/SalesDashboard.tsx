@@ -64,6 +64,7 @@ type SellerSalesDashboardProps = {
   booth?: SellerBooth | undefined;
   booths: readonly SellerBooth[];
   dashboard?: SellerDashboard | undefined;
+  mode?: "full" | "payment-only";
   onCreateProduct?:
     | ((
         boothId: string,
@@ -328,6 +329,7 @@ export function SellerSalesDashboard({
   booth,
   booths,
   dashboard,
+  mode = "full",
   onCaptureBarcodePayment,
   onCreateProduct,
   onDeleteProduct,
@@ -341,7 +343,8 @@ export function SellerSalesDashboard({
   report,
   session,
 }: SellerSalesDashboardProps) {
-  const [activeView, setActiveView] = useState<SalesView>("orders");
+  const isPaymentOnlyMode = mode === "payment-only";
+  const [activeView, setActiveView] = useState<SalesView>(isPaymentOnlyMode ? "payment" : "orders");
   const [paymentView, setPaymentView] = useState<PaymentView>("all");
   const [orderView, setOrderView] = useState<OrderView>("pending");
   const [orderSort, setOrderSort] = useState<OrderSort>("oldest");
@@ -514,6 +517,7 @@ export function SellerSalesDashboard({
   const sortedVisibleOrders = orderSort === "oldest" ? visibleOrders : [...visibleOrders].reverse();
   useEffect(() => {
     const handleAppShortcut = (event: KeyboardEvent) => {
+      if (isPaymentOnlyMode) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
 
       const target = event.target;
@@ -557,7 +561,7 @@ export function SellerSalesDashboard({
     };
     window.addEventListener("keydown", handleAppShortcut);
     return () => window.removeEventListener("keydown", handleAppShortcut);
-  }, [activeView]);
+  }, [activeView, isPaymentOnlyMode]);
 
   const lookupPayBarcode = (rawCode = payCode) => {
     void (async () => {
@@ -690,7 +694,8 @@ export function SellerSalesDashboard({
   };
 
   return (
-    <div className="sales-day-page">
+    <div className="sales-day-page" data-mode={isPaymentOnlyMode ? "payment-only" : undefined}>
+      {!isPaymentOnlyMode ? (
       <header className="sales-web-header">
         <div className="sales-web-header__inner">
           <div className="sales-brand">
@@ -779,6 +784,7 @@ export function SellerSalesDashboard({
           </div>
         </div>
       </header>
+      ) : null}
 
       <main className="sales-day-main">
         {activeView === "home" ? (
@@ -1153,7 +1159,7 @@ export function SellerSalesDashboard({
                 <h1 id="payment-title">고객 바코드로 결제 받기</h1>
                 <p>등록된 상품을 선택하고 고객 바코드를 스캔한 뒤 결제를 승인하세요.</p>
               </div>
-              <strong>{formatAmount(revenue)}</strong>
+              <strong>{isPaymentOnlyMode ? boothName : formatAmount(revenue)}</strong>
             </header>
 
             <div className="sales-barcode-payment">
@@ -1208,9 +1214,13 @@ export function SellerSalesDashboard({
                   <div className="sales-payment-empty">
                     <Package aria-hidden="true" />
                     <strong>등록된 상품이 없습니다.</strong>
-                    <button onClick={() => setActiveView("product-new")} type="button">
-                      상품 등록
-                    </button>
+                    {isPaymentOnlyMode ? (
+                      <span>전체 셀러 앱에서 상품을 먼저 등록하세요.</span>
+                    ) : (
+                      <button onClick={() => setActiveView("product-new")} type="button">
+                        상품 등록
+                      </button>
+                    )}
                   </div>
                 )}
               </section>

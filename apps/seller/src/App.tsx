@@ -45,6 +45,7 @@ function errorMessage(error: unknown) {
 }
 
 export function App() {
+  const isPaymentOnlyRoute = window.location.pathname.replace(/\/$/, "") === "/pay";
   const [session, setSession] = useState<SellerMe | undefined>();
   const [booths, setBooths] = useState<readonly SellerBooth[]>([]);
   const [dashboard, setDashboard] = useState<SellerDashboard | undefined>();
@@ -171,8 +172,12 @@ export function App() {
           <form aria-label="부스 로그인" onSubmit={handleLogin}>
             <CardHeader>
               <Badge intent="success">Booth</Badge>
-              <CardTitle>부스 계정 로그인</CardTitle>
-              <CardDescription>관리자가 발급한 부스 계정으로 접속합니다.</CardDescription>
+              <CardTitle>{isPaymentOnlyRoute ? "부스 결제 로그인" : "부스 계정 로그인"}</CardTitle>
+              <CardDescription>
+                {isPaymentOnlyRoute
+                  ? "휴대폰 결제 화면에 접속할 부스 계정으로 로그인합니다."
+                  : "관리자가 발급한 부스 계정으로 접속합니다."}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <label className="seller-field">
@@ -217,6 +222,7 @@ export function App() {
       booth={activeBooth}
       booths={booths}
       dashboard={dashboard}
+      mode={isPaymentOnlyRoute ? "payment-only" : "full"}
       onCreateProduct={async (boothId, input) => {
         const created = await createSellerProduct(boothId, input);
         await loadSellerData();

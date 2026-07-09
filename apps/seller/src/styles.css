@@ -1704,6 +1704,121 @@ body {
   font-size: 18px;
 }
 
+.sales-day-page[data-mode="payment-only"] {
+  min-height: 100dvh;
+  background: #eef1f4;
+}
+
+.sales-day-page[data-mode="payment-only"] .sales-day-main {
+  width: min(100%, 560px);
+  min-height: 100dvh;
+  padding: 14px 14px 22px;
+  background: #eef1f4;
+}
+
+.sales-day-page[data-mode="payment-only"] .sales-workspace {
+  min-height: auto;
+  padding-bottom: 0;
+}
+
+.sales-day-page[data-mode="payment-only"] .sales-workspace__header {
+  min-height: auto;
+  margin-bottom: 12px;
+  padding: 8px 2px 6px;
+}
+
+.sales-day-page[data-mode="payment-only"] .sales-workspace__header h1 {
+  font-size: 22px;
+  line-height: 1.24;
+  letter-spacing: 0;
+}
+
+.sales-day-page[data-mode="payment-only"] .sales-workspace__header p {
+  max-width: 330px;
+  line-height: 1.45;
+}
+
+.sales-day-page[data-mode="payment-only"] .sales-workspace__header > strong {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 150px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border-radius: 17px;
+  background: #fff;
+  color: #191f28;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sales-day-page[data-mode="payment-only"] .sales-barcode-payment {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.sales-day-page[data-mode="payment-only"] .sales-barcode-payment__panel {
+  gap: 14px;
+  padding: 16px;
+  border: 0;
+  border-radius: 18px;
+  box-shadow: 0 10px 26px rgba(25, 31, 40, 0.06);
+}
+
+.sales-day-page[data-mode="payment-only"] .sales-section-heading h2 {
+  font-size: 17px;
+}
+
+.sales-day-page[data-mode="payment-only"] .sales-section-heading p {
+  line-height: 1.45;
+}
+
+.sales-day-page[data-mode="payment-only"] .sales-payment-products {
+  max-height: none;
+}
+
+.sales-day-page[data-mode="payment-only"] .sales-payment-product {
+  grid-template-columns: 50px minmax(0, 1fr) 18px;
+  min-height: 70px;
+}
+
+.sales-day-page[data-mode="payment-only"] .sales-payment-product img,
+.sales-day-page[data-mode="payment-only"] .sales-payment-product__fallback {
+  width: 50px;
+  height: 50px;
+}
+
+.sales-day-page[data-mode="payment-only"] .sales-payment-scanner__viewport {
+  min-height: 210px;
+}
+
+.sales-day-page[data-mode="payment-only"] .sales-payment-scanner__viewport > div:first-child,
+.sales-day-page[data-mode="payment-only"] .sales-payment-scanner__viewport video,
+.sales-day-page[data-mode="payment-only"] .sales-payment-scanner__viewport canvas {
+  min-height: 210px;
+}
+
+.sales-day-page[data-mode="payment-only"] .sales-payment-scanner__actions {
+  grid-template-columns: minmax(0, 1fr) 94px;
+}
+
+.sales-day-page[data-mode="payment-only"] .sales-payment-capture {
+  height: 54px;
+  border-radius: 16px;
+  font-size: 15px;
+}
+
+.sales-day-page[data-mode="payment-only"] .sales-payment-empty span {
+  max-width: 220px;
+  color: #6b7684;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
 .sales-payment-customer {
   display: grid;
   gap: 7px;
