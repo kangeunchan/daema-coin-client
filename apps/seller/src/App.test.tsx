@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vitest";
 
 import { App } from "./App";
@@ -177,6 +177,9 @@ test("advances the mobile payment route only from the next step buttons", async 
   fireEvent.click(view.getAllByRole("button", { name: "다음" })[0]!);
 
   expect(slider).toHaveAttribute("data-step", "1");
+  await waitFor(() => {
+    expect(view.getByRole("textbox", { name: "바코드 번호" })).toHaveFocus();
+  });
 
   fireEvent.change(view.getByRole("textbox", { name: "바코드 번호" }), {
     target: { value: "DAEMA-PAY:CUST-001" },

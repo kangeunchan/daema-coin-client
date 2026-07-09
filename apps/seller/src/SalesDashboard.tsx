@@ -45,6 +45,16 @@ import type {
 const payScannerElementId = "seller-pay-camera-reader";
 const paymentStepLabels = ["상품", "스캔", "승인"] as const;
 
+function getBarcodeScanBox(viewfinderWidth: number, viewfinderHeight: number) {
+  const maxWidth = Math.max(80, viewfinderWidth - 24);
+  const maxHeight = Math.max(80, viewfinderHeight - 24);
+
+  return {
+    height: Math.min(maxHeight, Math.max(110, Math.floor(viewfinderHeight * 0.65))),
+    width: Math.min(maxWidth, Math.max(250, Math.floor(viewfinderWidth * 0.92))),
+  };
+}
+
 const productCategoryOptions = [
   { label: "음식", value: "food" },
   { label: "체험", value: "experience" },
@@ -377,6 +387,7 @@ export function SellerSalesDashboard({
     { clear: () => void; isScanning?: boolean; stop: () => Promise<void> } | undefined
   >(undefined);
   const payScanLockRef = useRef(false);
+  const payCodeInputRef = useRef<HTMLInputElement>(null);
   const productImagePreviewUrlRef = useRef("");
 
   useEffect(() => {
@@ -420,6 +431,14 @@ export function SellerSalesDashboard({
   useEffect(() => {
     return () => stopPayCameraScanner();
   }, [stopPayCameraScanner]);
+
+  useEffect(() => {
+    if (!isPaymentOnlyMode || paymentStep !== 1) {
+      return;
+    }
+
+    payCodeInputRef.current?.focus();
+  }, [isPaymentOnlyMode, paymentStep]);
 
   const selectProductImage = (file: File | undefined) => {
     if (productImagePreviewUrlRef.current) {
@@ -620,9 +639,10 @@ export function SellerSalesDashboard({
         await scanner.start(
           { facingMode: "environment" },
           {
+            aspectRatio: 16 / 9,
             disableFlip: false,
             fps: 10,
-            qrbox: { height: 180, width: 260 },
+            qrbox: getBarcodeScanBox,
           },
           (decodedText) => {
             const code = normalizePayBarcodeInput(decodedText);
@@ -1350,6 +1370,7 @@ export function SellerSalesDashboard({
                         }
                       }}
                       placeholder="DAEMA-PAY:..."
+                      ref={payCodeInputRef}
                       value={payCode}
                     />
                   </div>
