@@ -178,10 +178,10 @@
   --ease-standard: var(--daema-ease-standard);
   --ease-out: var(--daema-ease-out);
   --ease-in: var(--daema-ease-in);
-  --breakpoint-sm: var(--daema-breakpoint-sm);
-  --breakpoint-md: var(--daema-breakpoint-md);
-  --breakpoint-lg: var(--daema-breakpoint-lg);
-  --breakpoint-xl: var(--daema-breakpoint-xl);
+  --breakpoint-sm: 40rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
   --container-mobile: var(--daema-container-mobile);
   --container-content: var(--daema-container-content);
   --container-wide: var(--daema-container-wide);

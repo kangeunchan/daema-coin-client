@@ -356,7 +356,14 @@ function createTailwindCss(tokens: TransformedToken[]) {
   const declarations = tokens
     .map((token) => {
       const tailwindName = tailwindVarNameForToken(token);
-      return tailwindName ? `  ${tailwindName}: var(${cssVarNameForPath(token.path)});` : undefined;
+      if (!tailwindName) {
+        return undefined;
+      }
+      const value =
+        token.path[0] === "breakpoint"
+          ? stringifyCssValue(outputValueForToken(token))
+          : `var(${cssVarNameForPath(token.path)})`;
+      return `  ${tailwindName}: ${value};`;
     })
     .filter(Boolean);
 
