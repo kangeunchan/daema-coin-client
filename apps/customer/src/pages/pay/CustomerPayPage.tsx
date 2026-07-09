@@ -40,7 +40,7 @@ function formatPayCodeDisplay(value: string) {
 
 function PayBarcode({ displayValue, value }: { displayValue: string; value: string }) {
   return (
-    <div aria-label="대마페이 바코드" className="customer-pay-barcode" role="img">
+    <div aria-label="대마페이 바코드" className="customer-pay-barcode" data-scan-value={value} role="img">
       <div className="customer-pay-barcode__content">
         <Barcode
           background="#ffffff"

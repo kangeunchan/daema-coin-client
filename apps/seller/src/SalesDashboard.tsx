@@ -41,19 +41,10 @@ import type {
   SellerSalesReport,
   SellerUpload,
 } from "./api";
+import { getBarcodeScanBox } from "./payScanner";
 
 const payScannerElementId = "seller-pay-camera-reader";
 const paymentStepLabels = ["상품", "스캔", "승인"] as const;
-
-function getBarcodeScanBox(viewfinderWidth: number, viewfinderHeight: number) {
-  const maxWidth = Math.max(80, viewfinderWidth - 24);
-  const maxHeight = Math.max(80, viewfinderHeight - 24);
-
-  return {
-    height: Math.min(maxHeight, Math.max(110, Math.floor(viewfinderHeight * 0.65))),
-    width: Math.min(maxWidth, Math.max(250, Math.floor(viewfinderWidth * 0.92))),
-  };
-}
 
 const productCategoryOptions = [
   { label: "음식", value: "food" },

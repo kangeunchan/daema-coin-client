@@ -3,6 +3,7 @@ import { expect, test } from "vitest";
 
 import { App } from "./App";
 import { SellerSalesDashboard } from "./SalesDashboard";
+import { getBarcodeScanBox } from "./payScanner";
 
 test("renders the booth account login", async () => {
   render(<App />);
@@ -192,4 +193,51 @@ test("advances the mobile payment route only from the next step buttons", async 
   fireEvent.click(view.getAllByRole("button", { name: "다음" })[1]!);
 
   expect(slider).toHaveAttribute("data-step", "2");
+});
+
+test("uses a portrait scan box for rotated customer pay barcodes", () => {
+  const scanBox = getBarcodeScanBox(390, 248);
+
+  expect(scanBox.height).toBeGreaterThan(scanBox.width);
+  expect(scanBox.width).toBeGreaterThanOrEqual(132);
+});
+
+test("looks up the short customer barcode value emitted by the customer app", async () => {
+  const lookedUpCodes: string[] = [];
+  const { container } = render(
+    <SellerSalesDashboard
+      booth={{ id: "booth-1", name: "청량 카페" }}
+      booths={[{ id: "booth-1", name: "청량 카페" }]}
+      mode="payment-only"
+      onLookupPayBarcode={async (code) => {
+        lookedUpCodes.push(code);
+        return {
+          code,
+          customerId: "USER-DEMO-0001",
+        };
+      }}
+      products={[
+        {
+          id: "PRD-01",
+          price: 7_000,
+          sold: 12,
+          status: "판매 중",
+          stock: 10,
+          title: "딸기 소다",
+        },
+      ]}
+      session={{ displayName: "카페 매니저", loginId: "cafe.manager" }}
+    />,
+  );
+  const view = within(container);
+
+  fireEvent.click(view.getByRole("button", { name: /딸기 소다/ }));
+  fireEvent.click(view.getAllByRole("button", { name: "다음" })[0]!);
+  fireEvent.change(await view.findByRole("textbox", { name: "바코드 번호" }), {
+    target: { value: "USER-DEMO-0001" },
+  });
+  fireEvent.click(view.getByRole("button", { name: "바코드 조회" }));
+
+  await waitFor(() => expect(lookedUpCodes).toEqual(["USER-DEMO-0001"]));
+  expect((await view.findAllByText("USER-DEMO-0001"))[0]).toBeVisible();
 });
