@@ -13,6 +13,9 @@ import {
   fetchSellerProducts,
   fetchSellerSalesReport,
   isSellerApiEnabled,
+  captureSellerPaymentIntent,
+  createSellerPaymentIntent,
+  lookupSellerPayBarcode,
   loginSeller,
   logoutSeller,
   createSellerProduct,
@@ -242,6 +245,32 @@ export function App() {
       onDeleteProduct={async (productId) => {
         await deleteSellerProduct(productId);
         await loadSellerData();
+      }}
+      onLookupPayBarcode={lookupSellerPayBarcode}
+      onCaptureBarcodePayment={async (input) => {
+        const paymentInput: Parameters<typeof createSellerPaymentIntent>[0] = {
+          amount: input.amount,
+          barcode: input.code,
+        };
+        if (input.description) {
+          paymentInput.description = input.description;
+        }
+        if (input.idempotencyKey) {
+          paymentInput.idempotencyKey = input.idempotencyKey;
+        }
+        const intent = await createSellerPaymentIntent(paymentInput);
+        const intentId = intent.id ?? intent.intentId;
+        if (!intentId) {
+          throw new SellerApiError("결제 intent ID를 받지 못했습니다.", 0);
+        }
+        const captureInput: Parameters<typeof captureSellerPaymentIntent>[1] = {};
+        if (input.description) {
+          captureInput.description = input.description;
+          captureInput.productName = input.description;
+        }
+        const payment = await captureSellerPaymentIntent(intentId, captureInput);
+        await loadSellerData();
+        return payment;
       }}
       onUploadProductImage={async ({ boothId, file, productId }) => {
         const uploadInput: Parameters<typeof uploadSellerFile>[0] = {

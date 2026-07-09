@@ -52,6 +52,23 @@ export type SellerPayment = Record<string, unknown> & {
   totalAmount?: SellerMoney | number;
 };
 
+export type SellerPayBarcode = Record<string, unknown> & {
+  code?: string;
+  customerId?: string;
+  expiresAt?: string;
+  id?: string;
+  status?: string;
+  userId?: string;
+};
+
+export type SellerPaymentIntent = Record<string, unknown> & {
+  amount?: SellerMoney | number;
+  id?: string;
+  intentId?: string;
+  paymentId?: string;
+  status?: string;
+};
+
 export type SellerOrder = Record<string, unknown> & {
   createdAt?: string;
   customerName?: string;
@@ -259,6 +276,39 @@ export async function updateSellerOrderStatus(orderId: string, status: string) {
     body: { status },
     method: "PATCH",
   });
+}
+
+export async function lookupSellerPayBarcode(code: string) {
+  return sellerApiRequest<SellerPayBarcode>("/seller/pay/barcodes/lookup", {
+    body: { code },
+    method: "POST",
+  });
+}
+
+export async function createSellerPaymentIntent(input: {
+  amount: number;
+  barcode: string;
+  currency?: string;
+  description?: string;
+  idempotencyKey?: string;
+}) {
+  return sellerApiRequest<SellerPaymentIntent>("/seller/pay/payment-intents", {
+    body: { currency: "DMC", ...input },
+    method: "POST",
+  });
+}
+
+export async function captureSellerPaymentIntent(
+  intentId: string,
+  input: { description?: string; productName?: string } = {},
+) {
+  return sellerApiRequest<SellerPayment>(
+    `/seller/pay/payment-intents/${encodeURIComponent(intentId)}/capture`,
+    {
+      body: input,
+      method: "POST",
+    },
+  );
 }
 
 export async function createSellerProductImage(

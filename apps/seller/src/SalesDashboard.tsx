@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowDownToLine,
@@ -6,6 +6,7 @@ import {
   Bell,
   Box,
   CalendarDays,
+  Camera,
   CheckCircle2,
   ChevronDown,
   Clock3,
@@ -27,16 +28,21 @@ import {
   X,
 } from "lucide-react";
 
+import { SellerApiError } from "./api";
 import type {
   SellerBooth,
   SellerDashboard,
   SellerMe,
   SellerMoney,
   SellerOrder,
+  SellerPayBarcode,
+  SellerPayment,
   SellerProduct,
   SellerSalesReport,
   SellerUpload,
 } from "./api";
+
+const payScannerElementId = "seller-pay-camera-reader";
 
 const productCategoryOptions = [
   { label: "음식", value: "food" },
@@ -73,6 +79,15 @@ type SellerSalesDashboardProps = {
       ) => Promise<SellerProduct>)
     | undefined;
   onDeleteProduct?: ((productId: string) => Promise<void>) | undefined;
+  onCaptureBarcodePayment?:
+    | ((input: {
+        amount: number;
+        code: string;
+        description?: string;
+        idempotencyKey?: string;
+      }) => Promise<SellerPayment>)
+    | undefined;
+  onLookupPayBarcode?: ((code: string) => Promise<SellerPayBarcode>) | undefined;
   onLogout?: (() => void) | undefined;
   onUpdateOrderStatus?: ((orderId: string, status: string) => Promise<SellerOrder>) | undefined;
   onUpdateProduct?:
@@ -121,7 +136,7 @@ type SellerOrderItemRow = {
   tone: "normal" | "ready" | "urgent";
 };
 
-type SalesView = "home" | "inventory" | "orders" | "product-new" | "settlement";
+type SalesView = "home" | "inventory" | "orders" | "payment" | "product-new" | "settlement";
 type PaymentView = "all" | "captured" | "refunded";
 type OrderView = "all" | "completed" | "pending";
 type OrderSort = "newest" | "oldest";
@@ -288,12 +303,35 @@ function formatPaymentTime(value: string | undefined) {
   }).format(date);
 }
 
+function normalizePayBarcodeInput(value: string) {
+  return value
+    .trim()
+    .replace(/^DAEMA-PAY:/i, "")
+    .replace(/[^a-zA-Z0-9_-]/g, "");
+}
+
+function formatBarcodeOwner(barcode: SellerPayBarcode | undefined) {
+  if (!barcode) {
+    return "바코드를 조회하세요";
+  }
+  return barcode.customerId ?? barcode.userId ?? "고객";
+}
+
+function sellerDashboardErrorMessage(error: unknown) {
+  if (error instanceof SellerApiError) {
+    return error.message;
+  }
+  return "요청을 처리하지 못했습니다.";
+}
+
 export function SellerSalesDashboard({
   booth,
   booths,
   dashboard,
+  onCaptureBarcodePayment,
   onCreateProduct,
   onDeleteProduct,
+  onLookupPayBarcode,
   onLogout,
   onUpdateOrderStatus,
   onUpdateProduct,
@@ -319,6 +357,21 @@ export function SellerSalesDashboard({
   const [productImagePreviewUrl, setProductImagePreviewUrl] = useState("");
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
   const [productCreateError, setProductCreateError] = useState("");
+  const [payCode, setPayCode] = useState("");
+  const [selectedPayProductId, setSelectedPayProductId] = useState("");
+  const [payQuantity, setPayQuantity] = useState(1);
+  const [payBarcode, setPayBarcode] = useState<SellerPayBarcode | undefined>();
+  const [payStatusMessage, setPayStatusMessage] = useState("");
+  const [payError, setPayError] = useState("");
+  const [payScannerError, setPayScannerError] = useState("");
+  const [isPayScannerActive, setIsPayScannerActive] = useState(false);
+  const [isStartingPayScanner, setIsStartingPayScanner] = useState(false);
+  const [isLookingUpPayBarcode, setIsLookingUpPayBarcode] = useState(false);
+  const [isCapturingPayment, setIsCapturingPayment] = useState(false);
+  const payScannerRef = useRef<
+    { clear: () => void; isScanning?: boolean; stop: () => Promise<void> } | undefined
+  >(undefined);
+  const payScanLockRef = useRef(false);
   const productImagePreviewUrlRef = useRef("");
 
   useEffect(() => {
@@ -328,6 +381,40 @@ export function SellerSalesDashboard({
       }
     };
   }, []);
+
+  const stopPayCameraScanner = useCallback(() => {
+    void (async () => {
+      const scanner = payScannerRef.current;
+      if (!scanner) {
+        setIsPayScannerActive(false);
+        setIsStartingPayScanner(false);
+        return;
+      }
+      try {
+        if (scanner.isScanning) {
+          await scanner.stop();
+        }
+        scanner.clear();
+      } catch {
+        // Camera stream may already be closed by the browser.
+      } finally {
+        payScannerRef.current = undefined;
+        payScanLockRef.current = false;
+        setIsPayScannerActive(false);
+        setIsStartingPayScanner(false);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (activeView !== "payment") {
+      stopPayCameraScanner();
+    }
+  }, [activeView, stopPayCameraScanner]);
+
+  useEffect(() => {
+    return () => stopPayCameraScanner();
+  }, [stopPayCameraScanner]);
 
   const selectProductImage = (file: File | undefined) => {
     if (productImagePreviewUrlRef.current) {
@@ -408,6 +495,11 @@ export function SellerSalesDashboard({
       value.toLocaleLowerCase("ko-KR").includes(normalizedQuery),
     ),
   );
+  const selectedPayProduct = products.find((product) => product.id === selectedPayProductId);
+  const selectedPayProductStock = selectedPayProduct
+    ? (currentProductStocks[selectedPayProduct.id] ?? selectedPayProduct.stock)
+    : 0;
+  const payTotalAmount = selectedPayProduct ? selectedPayProduct.price * payQuantity : 0;
   const visibleOrders = orders.filter((order) => {
     const completed = order.completed || completedOrderIds.includes(order.id);
     const matchesView =
@@ -449,7 +541,8 @@ export function SellerSalesDashboard({
         "1": "home",
         "2": "orders",
         "3": "inventory",
-        "4": "settlement",
+        "4": "payment",
+        "5": "settlement",
       }[event.key] as SalesView | undefined;
 
       if (destination) {
@@ -465,6 +558,136 @@ export function SellerSalesDashboard({
     window.addEventListener("keydown", handleAppShortcut);
     return () => window.removeEventListener("keydown", handleAppShortcut);
   }, [activeView]);
+
+  const lookupPayBarcode = (rawCode = payCode) => {
+    void (async () => {
+      if (!onLookupPayBarcode) {
+        setPayError("바코드 조회 API가 연결되지 않았습니다.");
+        return;
+      }
+      const code = normalizePayBarcodeInput(rawCode);
+      if (!code) {
+        setPayError("바코드 번호를 입력하세요.");
+        return;
+      }
+      setIsLookingUpPayBarcode(true);
+      setPayError("");
+      setPayStatusMessage("");
+      try {
+        const barcode = await onLookupPayBarcode(code);
+        setPayBarcode(barcode);
+        setPayCode(barcode.code ?? code);
+        setPayStatusMessage("사용 가능한 바코드입니다.");
+      } catch (error) {
+        setPayBarcode(undefined);
+        setPayError(sellerDashboardErrorMessage(error));
+      } finally {
+        setIsLookingUpPayBarcode(false);
+      }
+    })();
+  };
+
+  const startPayCameraScanner = () => {
+    void (async () => {
+      if (isStartingPayScanner || isPayScannerActive) {
+        return;
+      }
+      setIsStartingPayScanner(true);
+      setPayScannerError("");
+      setPayStatusMessage("");
+      setPayError("");
+      try {
+        const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
+        const scanner = new Html5Qrcode(payScannerElementId, {
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.ITF,
+          ],
+          useBarCodeDetectorIfSupported: true,
+          verbose: false,
+        });
+        payScannerRef.current = scanner;
+        await scanner.start(
+          { facingMode: "environment" },
+          {
+            disableFlip: false,
+            fps: 10,
+            qrbox: { height: 180, width: 260 },
+          },
+          (decodedText) => {
+            const code = normalizePayBarcodeInput(decodedText);
+            if (!code || payScanLockRef.current) {
+              return;
+            }
+            payScanLockRef.current = true;
+            setPayCode(code);
+            setPayBarcode(undefined);
+            setPayScannerError("");
+            setPayStatusMessage("바코드를 스캔했습니다. 고객 정보를 조회합니다.");
+            stopPayCameraScanner();
+            lookupPayBarcode(code);
+          },
+          undefined,
+        );
+        setIsPayScannerActive(true);
+      } catch {
+        setPayScannerError("카메라를 열지 못했습니다. 브라우저 권한과 HTTPS/localhost 환경을 확인하세요.");
+        stopPayCameraScanner();
+      } finally {
+        setIsStartingPayScanner(false);
+      }
+    })();
+  };
+
+  const captureBarcodePayment = () => {
+    void (async () => {
+      if (!onCaptureBarcodePayment) {
+        setPayError("결제 승인 API가 연결되지 않았습니다.");
+        return;
+      }
+      const code = normalizePayBarcodeInput(payBarcode?.code ?? payCode);
+      if (!code) {
+        setPayError("먼저 바코드를 조회하세요.");
+        return;
+      }
+      if (!selectedPayProduct) {
+        setPayError("결제할 상품을 선택하세요.");
+        return;
+      }
+      if (!Number.isFinite(payTotalAmount) || payTotalAmount <= 0) {
+        setPayError("상품 가격을 확인하세요.");
+        return;
+      }
+      if (selectedPayProductStock <= 0) {
+        setPayError("품절된 상품은 결제할 수 없습니다.");
+        return;
+      }
+      setIsCapturingPayment(true);
+      setPayError("");
+      setPayStatusMessage("");
+      try {
+        const payment = await onCaptureBarcodePayment({
+          amount: payTotalAmount,
+          code,
+          description:
+            payQuantity > 1 ? `${selectedPayProduct.name} ${payQuantity}개` : selectedPayProduct.name,
+          idempotencyKey: `seller-pay-${activeBoothId}-${selectedPayProduct.id}-${code}-${payTotalAmount}-${Date.now()}`,
+        });
+        setPayStatusMessage(`${selectedPayProduct.name} ${formatAmount(payment.amount ?? payTotalAmount)} 결제가 완료됐습니다.`);
+        setPayBarcode(undefined);
+        setPayCode("");
+        setPayQuantity(1);
+      } catch (error) {
+        setPayError(sellerDashboardErrorMessage(error));
+      } finally {
+        setIsCapturingPayment(false);
+      }
+    })();
+  };
 
   return (
     <div className="sales-day-page">
@@ -504,6 +727,14 @@ export function SellerSalesDashboard({
               type="button"
             >
               상품·재고
+            </button>
+            <button
+              aria-current={activeView === "payment" ? "page" : undefined}
+              aria-label="바코드 결제"
+              onClick={() => setActiveView("payment")}
+              type="button"
+            >
+              결제
             </button>
             <button
               aria-current={activeView === "settlement" ? "page" : undefined}
@@ -910,6 +1141,227 @@ export function SellerSalesDashboard({
                   </span>
                 </div>
               ) : null}
+            </div>
+          </section>
+        ) : null}
+
+        {activeView === "payment" ? (
+          <section className="sales-workspace" aria-labelledby="payment-title">
+            <header className="sales-workspace__header">
+              <div>
+                <span>대마페이</span>
+                <h1 id="payment-title">고객 바코드로 결제 받기</h1>
+                <p>등록된 상품을 선택하고 고객 바코드를 스캔한 뒤 결제를 승인하세요.</p>
+              </div>
+              <strong>{formatAmount(revenue)}</strong>
+            </header>
+
+            <div className="sales-barcode-payment">
+              <section className="sales-barcode-payment__panel" aria-label="결제 상품 선택">
+                <div className="sales-section-heading">
+                  <div>
+                    <span>1단계</span>
+                    <h2>상품 선택</h2>
+                    <p>등록된 상품 가격으로 결제 금액이 자동 계산됩니다.</p>
+                  </div>
+                </div>
+                {products.length > 0 ? (
+                  <div className="sales-payment-products">
+                    {products.map((product) => {
+                      const stock = currentProductStocks[product.id] ?? product.stock;
+                      const selected = selectedPayProductId === product.id;
+                      const disabled = stock <= 0;
+                      return (
+                        <button
+                          aria-pressed={selected}
+                          className="sales-payment-product"
+                          data-selected={selected ? "true" : undefined}
+                          disabled={disabled}
+                          key={product.id}
+                          onClick={() => {
+                            setSelectedPayProductId(product.id);
+                            setPayQuantity(1);
+                            setPayError("");
+                            setPayStatusMessage("");
+                          }}
+                          type="button"
+                        >
+                          {product.imageUrl ? (
+                            <img alt="" src={product.imageUrl} />
+                          ) : (
+                            <span className="sales-payment-product__fallback">
+                              <Package aria-hidden="true" />
+                            </span>
+                          )}
+                          <span>
+                            <strong>{product.name}</strong>
+                            <small>
+                              {formatAmount(product.price)} · 재고 {stock.toLocaleString("ko-KR")}개
+                            </small>
+                          </span>
+                          {selected ? <CheckCircle2 aria-hidden="true" /> : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="sales-payment-empty">
+                    <Package aria-hidden="true" />
+                    <strong>등록된 상품이 없습니다.</strong>
+                    <button onClick={() => setActiveView("product-new")} type="button">
+                      상품 등록
+                    </button>
+                  </div>
+                )}
+              </section>
+
+              <section className="sales-barcode-payment__panel" aria-label="바코드 조회">
+                <div className="sales-section-heading">
+                  <div>
+                    <span>2단계</span>
+                    <h2>바코드 확인</h2>
+                    <p>카메라로 스캔하거나 스캐너 입력을 그대로 붙여넣을 수 있어요.</p>
+                  </div>
+                </div>
+                <div className="sales-payment-scanner">
+                  <div className="sales-payment-scanner__viewport" data-active={isPayScannerActive ? "true" : undefined}>
+                    <div id={payScannerElementId} />
+                    {!isPayScannerActive && !isStartingPayScanner ? (
+                      <div className="sales-payment-scanner__placeholder">
+                        <Camera aria-hidden="true" />
+                        <strong>카메라 스캔 대기</strong>
+                        <span>고객 결제 QR 또는 바코드를 화면 중앙에 맞추세요.</span>
+                      </div>
+                    ) : null}
+                  </div>
+                  {payScannerError ? (
+                    <p className="sales-payment-message" data-error="true">
+                      {payScannerError}
+                    </p>
+                  ) : null}
+                  <div className="sales-payment-scanner__actions">
+                    <button
+                      className="sales-payment-primary"
+                      disabled={isStartingPayScanner || isPayScannerActive}
+                      onClick={startPayCameraScanner}
+                      type="button"
+                    >
+                      <Camera aria-hidden="true" />
+                      {isStartingPayScanner ? "카메라 여는 중" : "카메라 스캔"}
+                    </button>
+                    <button
+                      className="sales-payment-secondary"
+                      disabled={!isPayScannerActive && !isStartingPayScanner}
+                      onClick={stopPayCameraScanner}
+                      type="button"
+                    >
+                      <X aria-hidden="true" />
+                      중지
+                    </button>
+                  </div>
+                </div>
+                <label className="sales-payment-field">
+                  <span>바코드 번호</span>
+                  <div>
+                    <CreditCard aria-hidden="true" />
+                    <input
+                      autoComplete="off"
+                      onChange={(event) => {
+                        setPayCode(event.currentTarget.value);
+                        setPayBarcode(undefined);
+                        setPayStatusMessage("");
+                        setPayError("");
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          lookupPayBarcode();
+                        }
+                      }}
+                      placeholder="DAEMA-PAY:..."
+                      value={payCode}
+                    />
+                  </div>
+                </label>
+                <button
+                  className="sales-payment-primary"
+                  disabled={isLookingUpPayBarcode}
+                  onClick={() => lookupPayBarcode()}
+                  type="button"
+                >
+                  {isLookingUpPayBarcode ? "조회 중" : "바코드 조회"}
+                </button>
+
+                <div className="sales-payment-customer" data-active={payBarcode ? "true" : undefined}>
+                  <span>결제 고객</span>
+                  <strong>{formatBarcodeOwner(payBarcode)}</strong>
+                  <small>{payBarcode?.expiresAt ? `만료 ${formatPaymentTime(payBarcode.expiresAt)}` : "조회 후 결제 가능"}</small>
+                </div>
+              </section>
+
+              <section className="sales-barcode-payment__panel" aria-label="결제 승인">
+                <div className="sales-section-heading">
+                  <div>
+                    <span>3단계</span>
+                    <h2>결제 확인</h2>
+                    <p>승인 즉시 고객 DMC가 차감되고 결제 내역에 기록됩니다.</p>
+                  </div>
+                </div>
+                <div className="sales-payment-summary">
+                  <div>
+                    <span>선택 상품</span>
+                    <strong>{selectedPayProduct?.name ?? "상품을 선택하세요"}</strong>
+                    <small>
+                      {selectedPayProduct
+                        ? `${formatAmount(selectedPayProduct.price)} · 재고 ${selectedPayProductStock.toLocaleString("ko-KR")}개`
+                        : "1단계에서 결제할 상품을 선택하세요."}
+                    </small>
+                  </div>
+                  <div className="sales-payment-quantity">
+                    <button
+                      aria-label="수량 줄이기"
+                      disabled={!selectedPayProduct || payQuantity <= 1}
+                      onClick={() => setPayQuantity((quantity) => Math.max(1, quantity - 1))}
+                      type="button"
+                    >
+                      <Minus aria-hidden="true" />
+                    </button>
+                    <span>{payQuantity}</span>
+                    <button
+                      aria-label="수량 늘리기"
+                      disabled={!selectedPayProduct || payQuantity >= Math.max(1, selectedPayProductStock)}
+                      onClick={() =>
+                        setPayQuantity((quantity) =>
+                          Math.min(Math.max(1, selectedPayProductStock), quantity + 1),
+                        )
+                      }
+                      type="button"
+                    >
+                      <Plus aria-hidden="true" />
+                    </button>
+                  </div>
+                  <dl>
+                    <div>
+                      <dt>결제 고객</dt>
+                      <dd>{formatBarcodeOwner(payBarcode)}</dd>
+                    </div>
+                    <div>
+                      <dt>총 결제 금액</dt>
+                      <dd>{formatAmount(payTotalAmount)}</dd>
+                    </div>
+                  </dl>
+                </div>
+                {payError ? <p className="sales-payment-message" data-error="true">{payError}</p> : null}
+                {payStatusMessage ? <p className="sales-payment-message">{payStatusMessage}</p> : null}
+                <button
+                  className="sales-payment-capture"
+                  disabled={!payBarcode || !selectedPayProduct || isCapturingPayment}
+                  onClick={captureBarcodePayment}
+                  type="button"
+                >
+                  {isCapturingPayment ? "승인 중" : "결제 승인"}
+                </button>
+              </section>
             </div>
           </section>
         ) : null}
