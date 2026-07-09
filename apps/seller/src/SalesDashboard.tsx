@@ -1252,226 +1252,226 @@ export function SellerSalesDashboard({
             ) : null}
 
             <div className="sales-barcode-payment" data-step={isPaymentOnlyMode ? paymentStep : undefined}>
-              <section className="sales-barcode-payment__panel" aria-label="결제 상품 선택">
-                <div className="sales-section-heading">
-                  <div>
-                    <span>1단계</span>
-                    <h2>상품 선택</h2>
-                    <p>등록된 상품 가격으로 결제 금액이 자동 계산됩니다.</p>
+              <div className="sales-barcode-payment__track">
+                <section className="sales-barcode-payment__panel" aria-label="결제 상품 선택">
+                  <div className="sales-section-heading">
+                    <div>
+                      <span>1단계</span>
+                      <h2>상품 선택</h2>
+                      <p>등록된 상품 가격으로 결제 금액이 자동 계산됩니다.</p>
+                    </div>
                   </div>
-                </div>
-                {products.length > 0 ? (
-                  <div className="sales-payment-products">
-                    {products.map((product) => {
-                      const stock = currentProductStocks[product.id] ?? product.stock;
-                      const selected = selectedPayProductId === product.id;
-                      const disabled = stock <= 0;
-                      return (
-                        <button
-                          aria-pressed={selected}
-                          className="sales-payment-product"
-                          data-selected={selected ? "true" : undefined}
-                          disabled={disabled}
-                          key={product.id}
-                          onClick={() => {
-                            setSelectedPayProductId(product.id);
-                            setPayQuantity(1);
-                            setPayError("");
-                            setPayStatusMessage("");
-                          }}
-                          type="button"
-                        >
-                          {product.imageUrl ? (
-                            <img alt="" src={product.imageUrl} />
-                          ) : (
-                            <span className="sales-payment-product__fallback">
-                              <Package aria-hidden="true" />
+                  {products.length > 0 ? (
+                    <div className="sales-payment-products">
+                      {products.map((product) => {
+                        const stock = currentProductStocks[product.id] ?? product.stock;
+                        const selected = selectedPayProductId === product.id;
+                        const disabled = stock <= 0;
+                        return (
+                          <button
+                            aria-pressed={selected}
+                            className="sales-payment-product"
+                            data-selected={selected ? "true" : undefined}
+                            disabled={disabled}
+                            key={product.id}
+                            onClick={() => {
+                              setSelectedPayProductId(product.id);
+                              setPayQuantity(1);
+                              setPayError("");
+                              setPayStatusMessage("");
+                            }}
+                            type="button"
+                          >
+                            {product.imageUrl ? (
+                              <img alt="" src={product.imageUrl} />
+                            ) : (
+                              <span className="sales-payment-product__fallback">
+                                <Package aria-hidden="true" />
+                              </span>
+                            )}
+                            <span>
+                              <strong>{product.name}</strong>
+                              <small>
+                                {formatAmount(product.price)} · 재고 {stock.toLocaleString("ko-KR")}개
+                              </small>
                             </span>
-                          )}
-                          <span>
-                            <strong>{product.name}</strong>
-                            <small>
-                              {formatAmount(product.price)} · 재고 {stock.toLocaleString("ko-KR")}개
-                            </small>
-                          </span>
-                          {selected ? <CheckCircle2 aria-hidden="true" /> : null}
+                            {selected ? <CheckCircle2 aria-hidden="true" /> : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="sales-payment-empty">
+                      <Package aria-hidden="true" />
+                      <strong>등록된 상품이 없습니다.</strong>
+                      {isPaymentOnlyMode ? (
+                        <span>전체 셀러 앱에서 상품을 먼저 등록하세요.</span>
+                      ) : (
+                        <button onClick={() => setActiveView("product-new")} type="button">
+                          상품 등록
                         </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="sales-payment-empty">
-                    <Package aria-hidden="true" />
-                    <strong>등록된 상품이 없습니다.</strong>
-                    {isPaymentOnlyMode ? (
-                      <span>전체 셀러 앱에서 상품을 먼저 등록하세요.</span>
-                    ) : (
-                      <button onClick={() => setActiveView("product-new")} type="button">
-                        상품 등록
+                      )}
+                    </div>
+                  )}
+                  {isPaymentOnlyMode ? (
+                    <div className="sales-payment-slide-actions">
+                      <button
+                        disabled={!selectedPayProduct}
+                        onClick={() => setPaymentStep(1)}
+                        type="button"
+                      >
+                        다음
                       </button>
-                    )}
-                  </div>
-                )}
-                {isPaymentOnlyMode ? (
-                  <div className="sales-payment-slide-actions">
-                    <button
-                      disabled={!selectedPayProduct}
-                      onClick={() => setPaymentStep(1)}
-                      type="button"
-                    >
-                      다음
-                    </button>
-                  </div>
-                ) : null}
-              </section>
-
-              <section className="sales-barcode-payment__panel" aria-label="QR 조회">
-                <div className="sales-section-heading">
-                  <div>
-                    <span>2단계</span>
-                    <h2>QR 확인</h2>
-                    <p>고객 대마페이 QR을 카메라로 스캔하세요.</p>
-                  </div>
-                </div>
-                <div className="sales-payment-scanner">
-                  <div className="sales-payment-scanner__viewport" data-active={isPayScannerActive ? "true" : undefined}>
-                    <div id={payScannerElementId} />
-                    {!isPayScannerActive && !isStartingPayScanner ? (
-                      <div className="sales-payment-scanner__placeholder">
-                        <Camera aria-hidden="true" />
-                        <strong>카메라 스캔 대기</strong>
-                        <span>고객 결제 QR을 화면 중앙에 맞추세요.</span>
-                      </div>
-                    ) : null}
-                  </div>
-                  {payScannerError ? (
-                    <p className="sales-payment-message" data-error="true">
-                      {payScannerError}
-                    </p>
+                    </div>
                   ) : null}
-                  <div className="sales-payment-scanner__actions">
-                    <button
-                      className="sales-payment-primary"
-                      disabled={isStartingPayScanner || isPayScannerActive}
-                      onClick={startPayCameraScanner}
-                      type="button"
-                    >
-                      <Camera aria-hidden="true" />
-                      {isStartingPayScanner ? "카메라 여는 중" : "카메라 스캔"}
-                    </button>
-                    <button
-                      className="sales-payment-secondary"
-                      disabled={!isPayScannerActive && !isStartingPayScanner}
-                      onClick={stopPayCameraScanner}
-                      type="button"
-                    >
-                      <X aria-hidden="true" />
-                      중지
-                    </button>
+                </section>
+
+                <section className="sales-barcode-payment__panel" aria-label="QR 조회">
+                  <div className="sales-section-heading">
+                    <div>
+                      <span>2단계</span>
+                      <h2>QR 확인</h2>
+                      <p>고객 대마페이 QR을 카메라로 스캔하세요.</p>
+                    </div>
                   </div>
-                </div>
-                <label className="sales-payment-field">
-                  <span>QR 데이터</span>
-                  <div>
-                    <CreditCard aria-hidden="true" />
-                    <input
-                      autoComplete="off"
-                      onChange={(event) => {
-                        setPayCode(event.currentTarget.value);
-                        setPayBarcode(undefined);
-                        setPayStatusMessage("");
-                        setPayError("");
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          lookupPayBarcode();
+                  <div className="sales-payment-scanner">
+                    <div className="sales-payment-scanner__viewport" data-active={isPayScannerActive ? "true" : undefined}>
+                      <div id={payScannerElementId} />
+                      {!isPayScannerActive && !isStartingPayScanner ? (
+                        <div className="sales-payment-scanner__placeholder">
+                          <Camera aria-hidden="true" />
+                          <strong>카메라 스캔 대기</strong>
+                          <span>고객 결제 QR을 화면 중앙에 맞추세요.</span>
+                        </div>
+                      ) : null}
+                    </div>
+                    {payScannerError ? (
+                      <p className="sales-payment-message" data-error="true">
+                        {payScannerError}
+                      </p>
+                    ) : null}
+                    <div className="sales-payment-scanner__actions">
+                      <button
+                        className="sales-payment-primary"
+                        disabled={isStartingPayScanner || isPayScannerActive}
+                        onClick={startPayCameraScanner}
+                        type="button"
+                      >
+                        <Camera aria-hidden="true" />
+                        {isStartingPayScanner ? "카메라 여는 중" : "카메라 스캔"}
+                      </button>
+                      <button
+                        className="sales-payment-secondary"
+                        disabled={!isPayScannerActive && !isStartingPayScanner}
+                        onClick={stopPayCameraScanner}
+                        type="button"
+                      >
+                        <X aria-hidden="true" />
+                        중지
+                      </button>
+                    </div>
+                  </div>
+                  <label className="sales-payment-field">
+                    <span>QR 데이터</span>
+                    <div>
+                      <CreditCard aria-hidden="true" />
+                      <input
+                        autoComplete="off"
+                        onChange={(event) => {
+                          setPayCode(event.currentTarget.value);
+                          setPayBarcode(undefined);
+                          setPayStatusMessage("");
+                          setPayError("");
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            lookupPayBarcode();
+                          }
+                        }}
+                        placeholder="DAEMA-PAY:..."
+                        ref={payCodeInputRef}
+                        value={payCode}
+                      />
+                    </div>
+                  </label>
+                  <button
+                    className="sales-payment-primary"
+                    disabled={isLookingUpPayBarcode}
+                    onClick={() => lookupPayBarcode()}
+                    type="button"
+                  >
+                    {isLookingUpPayBarcode ? "조회 중" : "QR 조회"}
+                  </button>
+
+                  {!isPaymentOnlyMode ? (
+                    <div className="sales-payment-customer" data-active={payBarcode ? "true" : undefined}>
+                      <span>결제 고객</span>
+                      <strong>{formatBarcodeOwner(payBarcode)}</strong>
+                      <small>{payBarcode?.expiresAt ? `만료 ${formatPaymentTime(payBarcode.expiresAt)}` : "조회 후 결제 가능"}</small>
+                    </div>
+                  ) : null}
+                  {isPaymentOnlyMode ? (
+                    <div className="sales-payment-slide-actions">
+                      <button className="sales-payment-secondary" onClick={() => setPaymentStep(0)} type="button">
+                        이전
+                      </button>
+                    </div>
+                  ) : null}
+                </section>
+
+                <section className="sales-barcode-payment__panel" aria-label="결제 승인">
+                  <div className="sales-section-heading">
+                    <div>
+                      <span>3단계</span>
+                      <h2>결제 확인</h2>
+                      <p>승인 즉시 고객 DMC가 차감되고 결제 내역에 기록됩니다.</p>
+                    </div>
+                  </div>
+                  <div className="sales-payment-summary">
+                    <div>
+                      <span>선택 상품</span>
+                      <strong>{selectedPayProduct?.name ?? "상품을 선택하세요"}</strong>
+                      <small>
+                        {selectedPayProduct
+                          ? `${formatAmount(selectedPayProduct.price)} · 재고 ${selectedPayProductStock.toLocaleString("ko-KR")}개`
+                          : "1단계에서 결제할 상품을 선택하세요."}
+                      </small>
+                    </div>
+                    <div className="sales-payment-quantity">
+                      <button
+                        aria-label="수량 줄이기"
+                        disabled={!selectedPayProduct || payQuantity <= 1}
+                        onClick={() => setPayQuantity((quantity) => Math.max(1, quantity - 1))}
+                        type="button"
+                      >
+                        <Minus aria-hidden="true" />
+                      </button>
+                      <span>{payQuantity}</span>
+                      <button
+                        aria-label="수량 늘리기"
+                        disabled={!selectedPayProduct || payQuantity >= Math.max(1, selectedPayProductStock)}
+                        onClick={() =>
+                          setPayQuantity((quantity) =>
+                            Math.min(Math.max(1, selectedPayProductStock), quantity + 1),
+                          )
                         }
-                      }}
-                      placeholder="DAEMA-PAY:..."
-                      ref={payCodeInputRef}
-                      value={payCode}
-                    />
-                  </div>
-                </label>
-                <button
-                  className="sales-payment-primary"
-                  disabled={isLookingUpPayBarcode}
-                  onClick={() => lookupPayBarcode()}
-                  type="button"
-                >
-                  {isLookingUpPayBarcode ? "조회 중" : "QR 조회"}
-                </button>
-
-                <div className="sales-payment-customer" data-active={payBarcode ? "true" : undefined}>
-                  <span>결제 고객</span>
-                  <strong>{formatBarcodeOwner(payBarcode)}</strong>
-                  <small>{payBarcode?.expiresAt ? `만료 ${formatPaymentTime(payBarcode.expiresAt)}` : "조회 후 결제 가능"}</small>
-                </div>
-                {isPaymentOnlyMode ? (
-                  <div className="sales-payment-slide-actions">
-                    <button className="sales-payment-secondary" onClick={() => setPaymentStep(0)} type="button">
-                      이전
-                    </button>
-                    <button disabled={!payBarcode} onClick={() => setPaymentStep(2)} type="button">
-                      다음
-                    </button>
-                  </div>
-                ) : null}
-              </section>
-
-              <section className="sales-barcode-payment__panel" aria-label="결제 승인">
-                <div className="sales-section-heading">
-                  <div>
-                    <span>3단계</span>
-                    <h2>결제 확인</h2>
-                    <p>승인 즉시 고객 DMC가 차감되고 결제 내역에 기록됩니다.</p>
-                  </div>
-                </div>
-                <div className="sales-payment-summary">
-                  <div>
-                    <span>선택 상품</span>
-                    <strong>{selectedPayProduct?.name ?? "상품을 선택하세요"}</strong>
-                    <small>
-                      {selectedPayProduct
-                        ? `${formatAmount(selectedPayProduct.price)} · 재고 ${selectedPayProductStock.toLocaleString("ko-KR")}개`
-                        : "1단계에서 결제할 상품을 선택하세요."}
-                    </small>
-                  </div>
-                  <div className="sales-payment-quantity">
-                    <button
-                      aria-label="수량 줄이기"
-                      disabled={!selectedPayProduct || payQuantity <= 1}
-                      onClick={() => setPayQuantity((quantity) => Math.max(1, quantity - 1))}
-                      type="button"
-                    >
-                      <Minus aria-hidden="true" />
-                    </button>
-                    <span>{payQuantity}</span>
-                    <button
-                      aria-label="수량 늘리기"
-                      disabled={!selectedPayProduct || payQuantity >= Math.max(1, selectedPayProductStock)}
-                      onClick={() =>
-                        setPayQuantity((quantity) =>
-                          Math.min(Math.max(1, selectedPayProductStock), quantity + 1),
-                        )
-                      }
-                      type="button"
-                    >
-                      <Plus aria-hidden="true" />
-                    </button>
-                  </div>
-                  <dl>
-                    <div>
-                      <dt>결제 고객</dt>
-                      <dd>{formatBarcodeOwner(payBarcode)}</dd>
+                        type="button"
+                      >
+                        <Plus aria-hidden="true" />
+                      </button>
                     </div>
-                    <div>
-                      <dt>총 결제 금액</dt>
-                      <dd>{formatAmount(payTotalAmount)}</dd>
-                    </div>
-                  </dl>
-                </div>
+                    <dl>
+                      <div>
+                        <dt>결제 고객</dt>
+                        <dd>{formatBarcodeOwner(payBarcode)}</dd>
+                      </div>
+                      <div>
+                        <dt>총 결제 금액</dt>
+                        <dd>{formatAmount(payTotalAmount)}</dd>
+                      </div>
+                    </dl>
+                  </div>
                 {payError ? <p className="sales-payment-message" data-error="true">{payError}</p> : null}
                 {payStatusMessage ? <p className="sales-payment-message">{payStatusMessage}</p> : null}
                 <button
@@ -1490,6 +1490,7 @@ export function SellerSalesDashboard({
                   </div>
                 ) : null}
               </section>
+            </div>
             </div>
           </section>
         ) : null}
