@@ -142,6 +142,35 @@ test("renders the sales dashboard workspace", () => {
   expect(screen.getByRole("heading", { name: "오늘 판매 대금을 확인하세요" })).toBeVisible();
 });
 
+test("renders seller inventory products without client-side truncation", () => {
+  const products = Array.from({ length: 120 }, (_, index) => {
+    const number = index + 1;
+    return {
+      id: `PRD-${String(number).padStart(3, "0")}`,
+      price: 1_000 + number,
+      sold: 0,
+      stock: 10,
+      status: "판매 중",
+      title: `상품 ${number}`,
+    };
+  });
+
+  const { container } = render(
+    <SellerSalesDashboard
+      booth={{ id: "booth-1", name: "청량 카페" }}
+      booths={[{ id: "booth-1", name: "청량 카페" }]}
+      products={products}
+      session={{ displayName: "카페 매니저", loginId: "cafe.manager" }}
+    />,
+  );
+  const view = within(container);
+
+  fireEvent.click(view.getAllByRole("button", { name: "상품과 재고" })[0]!);
+
+  expect(view.getByText("상품 1")).toBeVisible();
+  expect(view.getByText("상품 120")).toBeVisible();
+});
+
 test("advances the mobile payment route after a successful QR lookup", async () => {
   const { container } = render(
     <SellerSalesDashboard

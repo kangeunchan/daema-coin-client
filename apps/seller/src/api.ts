@@ -213,7 +213,7 @@ export async function fetchSellerSalesReport(boothId: string) {
 
 export async function fetchSellerProducts(boothId: string) {
   return sellerApiRequest<SellerProduct[]>(
-    `/seller/booths/${encodeURIComponent(boothId)}/products`,
+    `/seller/booths/${encodeURIComponent(boothId)}/products?limit=1000`,
   );
 }
 
