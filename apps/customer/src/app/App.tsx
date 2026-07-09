@@ -14,7 +14,7 @@ import {
   logoutCustomer,
 } from "../shared/api/auth";
 import { isCustomerApiEnabled } from "../shared/api/client";
-import { registerExistingCustomerPushTarget } from "../shared/api/pushNotifications";
+import { setupCustomerPushNotificationsOnEntry } from "../shared/api/pushNotifications";
 import { getCurrentCustomerPathname, pushCustomerPath } from "../shared/lib/customerNavigation";
 import { useCustomerPathname } from "../shared/lib/useCustomerPathname";
 import { BottomTabbar } from "../widgets/bottom-tabbar";
@@ -227,7 +227,7 @@ export function App() {
       return;
     }
 
-    void registerExistingCustomerPushTarget().catch(() => undefined);
+    void setupCustomerPushNotificationsOnEntry().catch(() => undefined);
   }, [isAuthChecking, isAuthenticated]);
 
   const handleTabChange = (tab: NavigationTab) => {

@@ -192,3 +192,20 @@ export async function registerExistingCustomerPushTarget() {
 
   await syncCustomerPushToken(messaging);
 }
+
+export async function setupCustomerPushNotificationsOnEntry() {
+  if (!notificationSupported()) {
+    return "unsupported" as const;
+  }
+
+  if (Notification.permission === "granted") {
+    await registerExistingCustomerPushTarget();
+    return "registered" as const;
+  }
+
+  if (Notification.permission === "default") {
+    return enableCustomerPushNotifications();
+  }
+
+  return Notification.permission;
+}
