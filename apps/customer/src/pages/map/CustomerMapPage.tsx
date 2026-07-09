@@ -997,7 +997,7 @@ function boothNameById(items: readonly CustomerBoothDto[] | undefined) {
   return new Map(
     (items ?? []).flatMap((item) => {
       const id = item.id;
-      const name = item.name;
+      const name = item.displayName ?? item.title ?? item.name;
       return id && name ? [[id, name] as const] : [];
     }),
   );

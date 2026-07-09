@@ -23,8 +23,10 @@ export type CustomerBoothBannerDto = Record<string, unknown> & {
 };
 
 export type CustomerBoothDto = Record<string, unknown> & {
+  displayName?: string;
   id?: string;
   name?: string;
+  title?: string;
 };
 
 export type CustomerBoothProductDto = Record<string, unknown> & {
