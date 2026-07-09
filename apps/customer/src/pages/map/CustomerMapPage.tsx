@@ -54,10 +54,16 @@ type BoothHeroSlide = {
 };
 
 type BoothRecommendationsProps = {
-  categoryId: BoothCategoryId;
+  boothId: string;
   onProductSelect: (product: BoothProduct) => void;
   panelId: string;
   products: readonly BoothProduct[];
+  title: string;
+};
+
+type BoothTab = {
+  id: string;
+  label: string;
   title: string;
 };
 
@@ -103,26 +109,32 @@ const baseBoothCategories = [
   { id: "all", label: "쇼핑 홈", title: "전체 부스 상품" },
 ] satisfies readonly BoothCategory[];
 
+const baseBoothTabs = [
+  { id: "all", label: "전체", title: "전체 부스 상품" },
+] satisfies readonly BoothTab[];
+
 export function CustomerMapPage() {
   const pathname = useCustomerPathname();
   const [activeSlide, setActiveSlide] = useState(0);
-  const [activeCategoryId, setActiveCategoryId] = useState<BoothCategoryId>("all");
+  const [activeBoothTabId, setActiveBoothTabId] = useState("all");
   const [apiCategories, setApiCategories] = useState<readonly BoothCategory[]>(baseBoothCategories);
+  const [apiBoothTabs, setApiBoothTabs] = useState<readonly BoothTab[]>(baseBoothTabs);
   const [apiHeroSlides, setApiHeroSlides] = useState<readonly BoothHeroSlide[]>([]);
   const [apiProducts, setApiProducts] = useState<readonly BoothProduct[]>([]);
   const categories = apiCategories;
+  const boothTabs = apiBoothTabs;
   const heroSlides = apiHeroSlides;
   const products = apiProducts;
   const isCartPath = pathname === "/booth/cart";
   const isOrdersPath = pathname === "/booth/orders";
   const selectedProductId = getProductIdFromPathname(pathname);
-  const visibleCategoryId = categories.some((category) => category.id === activeCategoryId)
-    ? activeCategoryId
+  const visibleBoothTabId = boothTabs.some((tab) => tab.id === activeBoothTabId)
+    ? activeBoothTabId
     : "all";
-  const activeCategory = categories.find((category) => category.id === visibleCategoryId);
+  const activeBoothTab = boothTabs.find((tab) => tab.id === visibleBoothTabId);
   const selectedProduct = products.find((product) => product.id === selectedProductId);
   const tabPanelId = useId();
-  const categoryTabRefs = useRef(new Map<BoothCategoryId, HTMLButtonElement>());
+  const boothTabRefs = useRef(new Map<string, HTMLButtonElement>());
 
   useEffect(() => {
     if (!selectedProduct || !isCustomerApiEnabled()) {
@@ -157,10 +169,12 @@ export function CustomerMapPage() {
         }
 
         const nextCategories = mapBoothCategories(home.categories);
+        const nextBoothTabs = mapBoothTabs(home.booths);
         const nextHeroSlides = mapBoothHeroSlides(home.banners);
         const nextProducts = mapBoothProducts(home.products, home.booths);
 
         setApiCategories(nextCategories);
+        setApiBoothTabs(nextBoothTabs);
         setApiHeroSlides(nextHeroSlides);
         setApiProducts(nextProducts);
       })
@@ -172,12 +186,12 @@ export function CustomerMapPage() {
   }, []);
 
   useEffect(() => {
-    categoryTabRefs.current.get(visibleCategoryId)?.scrollIntoView({
+    boothTabRefs.current.get(visibleBoothTabId)?.scrollIntoView({
       behavior: "smooth",
       block: "nearest",
       inline: "center",
     });
-  }, [visibleCategoryId]);
+  }, [visibleBoothTabId]);
 
   const openProductDetail = (product: BoothProduct) => {
     pushCustomerPath(`/booth/${product.id}`);
@@ -207,29 +221,29 @@ export function CustomerMapPage() {
     <div className="customer-booth-page">
       <AppHeader action="cart" stickyActions />
       <Surface asChild className="customer-booth-category-surface" padding="none">
-        <nav aria-label="부스 카테고리">
+        <nav aria-label="부스">
           <div className="customer-booth-categories" role="tablist">
-            {categories.map((category) => (
+            {boothTabs.map((tab) => (
               <button
                 aria-controls={tabPanelId}
-                aria-selected={visibleCategoryId === category.id}
+                aria-selected={visibleBoothTabId === tab.id}
                 className="customer-booth-category"
-                data-active={visibleCategoryId === category.id ? "true" : undefined}
-                id={`booth-category-${category.id}`}
-                key={category.id}
-                onClick={() => setActiveCategoryId(category.id)}
+                data-active={visibleBoothTabId === tab.id ? "true" : undefined}
+                id={`booth-tab-${tab.id}`}
+                key={tab.id}
+                onClick={() => setActiveBoothTabId(tab.id)}
                 ref={(node) => {
                   if (node) {
-                    categoryTabRefs.current.set(category.id, node);
+                    boothTabRefs.current.set(tab.id, node);
                     return;
                   }
 
-                  categoryTabRefs.current.delete(category.id);
+                  boothTabRefs.current.delete(tab.id);
                 }}
                 role="tab"
                 type="button"
               >
-                {category.label}
+                {tab.label}
               </button>
             ))}
           </div>
@@ -285,19 +299,19 @@ export function CustomerMapPage() {
         </section>
       ) : null}
       <BoothRecommendations
-        categoryId={visibleCategoryId}
-        key={activeCategoryId}
+        boothId={visibleBoothTabId}
+        key={activeBoothTabId}
         onProductSelect={openProductDetail}
         panelId={tabPanelId}
         products={products}
-        title={activeCategory?.title ?? "전체 부스 상품"}
+        title={activeBoothTab?.title ?? "전체 부스 상품"}
       />
     </div>
   );
 }
 
 function BoothRecommendations({
-  categoryId,
+  boothId,
   onProductSelect,
   panelId,
   products,
@@ -305,11 +319,9 @@ function BoothRecommendations({
 }: BoothRecommendationsProps) {
   const [darkImageBySrc, setDarkImageBySrc] = useState<Record<string, boolean>>({});
   const filteredProducts =
-    categoryId === "all"
+    boothId === "all"
       ? products
-      : products.filter((product) =>
-          (product.categories as readonly BoothCategoryId[]).includes(categoryId),
-        );
+      : products.filter((product) => product.boothId === boothId);
   const displayProducts = filteredProducts.map((product) => ({
     ...product,
     instanceId: product.id,
@@ -879,6 +891,24 @@ function mapBoothCategories(items: readonly CustomerBoothCategoryDto[] | undefin
     BoothCategory[];
 }
 
+function boothDisplayName(item: CustomerBoothDto) {
+  return item.displayName ?? item.title ?? item.name ?? item.id ?? "이름 없는 부스";
+}
+
+function mapBoothTabs(items: readonly CustomerBoothDto[] | undefined) {
+  const tabs = (items ?? []).flatMap((item) => {
+    const id = item.id;
+    if (!id) {
+      return [];
+    }
+
+    const label = boothDisplayName(item);
+    return [{ id, label, title: `${label} 상품` }];
+  });
+
+  return [{ id: "all", label: "전체", title: "전체 부스 상품" }, ...tabs] satisfies readonly BoothTab[];
+}
+
 function mapBoothHeroSlides(items: readonly CustomerBoothBannerDto[] | undefined) {
   return (items ?? []).map((item) => ({
     badge: item.badge ?? "부스 추천",
@@ -997,7 +1027,7 @@ function boothNameById(items: readonly CustomerBoothDto[] | undefined) {
   return new Map(
     (items ?? []).flatMap((item) => {
       const id = item.id;
-      const name = item.displayName ?? item.title ?? item.name;
+      const name = boothDisplayName(item);
       return id && name ? [[id, name] as const] : [];
     }),
   );
