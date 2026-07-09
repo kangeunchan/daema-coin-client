@@ -43,6 +43,7 @@ import type {
 } from "./api";
 
 const payScannerElementId = "seller-pay-camera-reader";
+const paymentStepLabels = ["상품", "스캔", "승인"] as const;
 
 const productCategoryOptions = [
   { label: "음식", value: "food" },
@@ -363,6 +364,7 @@ export function SellerSalesDashboard({
   const [payCode, setPayCode] = useState("");
   const [selectedPayProductId, setSelectedPayProductId] = useState("");
   const [payQuantity, setPayQuantity] = useState(1);
+  const [paymentStep, setPaymentStep] = useState(0);
   const [payBarcode, setPayBarcode] = useState<SellerPayBarcode | undefined>();
   const [payStatusMessage, setPayStatusMessage] = useState("");
   const [payError, setPayError] = useState("");
@@ -582,6 +584,9 @@ export function SellerSalesDashboard({
         setPayBarcode(barcode);
         setPayCode(barcode.code ?? code);
         setPayStatusMessage("사용 가능한 바코드입니다.");
+        if (isPaymentOnlyMode) {
+          setPaymentStep(2);
+        }
       } catch (error) {
         setPayBarcode(undefined);
         setPayError(sellerDashboardErrorMessage(error));
@@ -685,6 +690,10 @@ export function SellerSalesDashboard({
         setPayBarcode(undefined);
         setPayCode("");
         setPayQuantity(1);
+        if (isPaymentOnlyMode) {
+          setSelectedPayProductId("");
+          setPaymentStep(0);
+        }
       } catch (error) {
         setPayError(sellerDashboardErrorMessage(error));
       } finally {
@@ -1156,13 +1165,53 @@ export function SellerSalesDashboard({
             <header className="sales-workspace__header">
               <div>
                 <span>대마페이</span>
-                <h1 id="payment-title">고객 바코드로 결제 받기</h1>
-                <p>등록된 상품을 선택하고 고객 바코드를 스캔한 뒤 결제를 승인하세요.</p>
+                <h1 id="payment-title">{isPaymentOnlyMode ? "모바일 POS 결제" : "고객 바코드로 결제 받기"}</h1>
+                <p>
+                  {isPaymentOnlyMode
+                    ? "상품을 고르고, 고객 바코드를 스캔한 뒤 승인하세요."
+                    : "등록된 상품을 선택하고 고객 바코드를 스캔한 뒤 결제를 승인하세요."}
+                </p>
               </div>
               <strong>{isPaymentOnlyMode ? boothName : formatAmount(revenue)}</strong>
             </header>
 
-            <div className="sales-barcode-payment">
+            {isPaymentOnlyMode ? (
+              <div className="sales-pos-display" aria-label="결제 금액 표시">
+                <span>{selectedPayProduct?.name ?? "상품 대기"}</span>
+                <strong>{formatAmount(payTotalAmount)}</strong>
+                <small>
+                  {selectedPayProduct
+                    ? `${payQuantity}개 · ${formatBarcodeOwner(payBarcode)}`
+                    : "상품을 선택하면 결제 금액이 표시됩니다."}
+                </small>
+              </div>
+            ) : null}
+
+            {isPaymentOnlyMode ? (
+              <div className="sales-payment-stepper" role="tablist" aria-label="결제 단계">
+                {paymentStepLabels.map((label, index) => (
+                  <button
+                    aria-current={paymentStep === index ? "step" : undefined}
+                    disabled={
+                      (index === 1 && !selectedPayProduct) ||
+                      (index === 2 && (!selectedPayProduct || !payBarcode))
+                    }
+                    key={label}
+                    onClick={() => {
+                      if (index === 1 && !selectedPayProduct) return;
+                      if (index === 2 && (!selectedPayProduct || !payBarcode)) return;
+                      setPaymentStep(index);
+                    }}
+                    type="button"
+                  >
+                    <span>{index + 1}</span>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="sales-barcode-payment" data-step={isPaymentOnlyMode ? paymentStep : undefined}>
               <section className="sales-barcode-payment__panel" aria-label="결제 상품 선택">
                 <div className="sales-section-heading">
                   <div>
@@ -1189,6 +1238,9 @@ export function SellerSalesDashboard({
                             setPayQuantity(1);
                             setPayError("");
                             setPayStatusMessage("");
+                            if (isPaymentOnlyMode) {
+                              setPaymentStep(1);
+                            }
                           }}
                           type="button"
                         >
@@ -1223,6 +1275,17 @@ export function SellerSalesDashboard({
                     )}
                   </div>
                 )}
+                {isPaymentOnlyMode ? (
+                  <div className="sales-payment-slide-actions">
+                    <button
+                      disabled={!selectedPayProduct}
+                      onClick={() => setPaymentStep(1)}
+                      type="button"
+                    >
+                      다음
+                    </button>
+                  </div>
+                ) : null}
               </section>
 
               <section className="sales-barcode-payment__panel" aria-label="바코드 조회">
@@ -1307,6 +1370,16 @@ export function SellerSalesDashboard({
                   <strong>{formatBarcodeOwner(payBarcode)}</strong>
                   <small>{payBarcode?.expiresAt ? `만료 ${formatPaymentTime(payBarcode.expiresAt)}` : "조회 후 결제 가능"}</small>
                 </div>
+                {isPaymentOnlyMode ? (
+                  <div className="sales-payment-slide-actions">
+                    <button className="sales-payment-secondary" onClick={() => setPaymentStep(0)} type="button">
+                      이전
+                    </button>
+                    <button disabled={!payBarcode} onClick={() => setPaymentStep(2)} type="button">
+                      다음
+                    </button>
+                  </div>
+                ) : null}
               </section>
 
               <section className="sales-barcode-payment__panel" aria-label="결제 승인">
@@ -1371,6 +1444,13 @@ export function SellerSalesDashboard({
                 >
                   {isCapturingPayment ? "승인 중" : "결제 승인"}
                 </button>
+                {isPaymentOnlyMode ? (
+                  <div className="sales-payment-slide-actions">
+                    <button className="sales-payment-secondary" onClick={() => setPaymentStep(1)} type="button">
+                      이전
+                    </button>
+                  </div>
+                ) : null}
               </section>
             </div>
           </section>
