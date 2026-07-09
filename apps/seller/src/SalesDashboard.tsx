@@ -597,7 +597,10 @@ export function SellerSalesDashboard({
         const barcode = await onLookupPayBarcode(code);
         setPayBarcode(barcode);
         setPayCode(barcode.code ?? code);
-        setPayStatusMessage("사용 가능한 바코드입니다.");
+        setPayStatusMessage("QR 확인이 완료됐습니다. 결제를 승인하세요.");
+        if (isPaymentOnlyMode && selectedPayProduct) {
+          setPaymentStep(2);
+        }
       } catch (error) {
         setPayBarcode(undefined);
         setPayError(sellerDashboardErrorMessage(error));

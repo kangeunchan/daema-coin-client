@@ -142,7 +142,7 @@ test("renders the sales dashboard workspace", () => {
   expect(screen.getByRole("heading", { name: "오늘 판매 대금을 확인하세요" })).toBeVisible();
 });
 
-test("advances the mobile payment route only from the next step buttons", async () => {
+test("advances the mobile payment route after a successful QR lookup", async () => {
   const { container } = render(
     <SellerSalesDashboard
       booth={{ id: "booth-1", name: "청량 카페" }}
@@ -188,11 +188,7 @@ test("advances the mobile payment route only from the next step buttons", async 
   fireEvent.click(view.getByRole("button", { name: "QR 조회" }));
 
   expect((await view.findAllByText("CUST-001"))[0]).toBeVisible();
-  expect(slider).toHaveAttribute("data-step", "1");
-
-  fireEvent.click(view.getAllByRole("button", { name: "다음" })[1]!);
-
-  expect(slider).toHaveAttribute("data-step", "2");
+  await waitFor(() => expect(slider).toHaveAttribute("data-step", "2"));
 });
 
 test("uses a square scan box for customer pay QR codes", () => {
@@ -248,4 +244,7 @@ test("looks up only the prefixed customer QR payload", async () => {
 
   await waitFor(() => expect(lookedUpCodes).toEqual(["USER-DEMO-0001"]));
   expect((await view.findAllByText("USER-DEMO-0001"))[0]).toBeVisible();
+  await waitFor(() =>
+    expect(container.querySelector(".sales-barcode-payment")).toHaveAttribute("data-step", "2"),
+  );
 });
