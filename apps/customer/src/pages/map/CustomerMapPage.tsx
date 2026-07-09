@@ -320,7 +320,7 @@ function BoothRecommendations({
   const [darkImageBySrc, setDarkImageBySrc] = useState<Record<string, boolean>>({});
   const filteredProducts =
     boothId === "all"
-      ? products
+      ? orderAllBoothProducts(products)
       : products.filter((product) => product.boothId === boothId);
   const displayProducts = filteredProducts.map((product) => ({
     ...product,
@@ -931,6 +931,40 @@ function stringList(value: unknown) {
     return [value];
   }
   return [];
+}
+
+function stableHash(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function primaryProductCategory(product: BoothProduct) {
+  return product.categories.find((category) => category !== "all") ?? "booth";
+}
+
+function orderAllBoothProducts(products: readonly BoothProduct[]) {
+  return [...products].sort((left, right) => {
+    const leftCategory = primaryProductCategory(left);
+    const rightCategory = primaryProductCategory(right);
+    const categoryDelta =
+      stableHash(`category:${leftCategory}`) - stableHash(`category:${rightCategory}`);
+    if (categoryDelta !== 0) {
+      return categoryDelta;
+    }
+
+    const leftBooth = left.boothId ?? left.boothName ?? "unknown";
+    const rightBooth = right.boothId ?? right.boothName ?? "unknown";
+    const boothDelta = stableHash(`booth:${leftBooth}`) - stableHash(`booth:${rightBooth}`);
+    if (boothDelta !== 0) {
+      return boothDelta;
+    }
+
+    return stableHash(`product:${left.id}`) - stableHash(`product:${right.id}`);
+  });
 }
 
 function numberValue(value: unknown) {
