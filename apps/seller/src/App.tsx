@@ -31,6 +31,7 @@ import type {
   SellerDashboard,
   SellerMe,
   SellerOrder,
+  SellerOrderStatusUpdateInput,
   SellerProduct,
   SellerSalesReport,
 } from "./api";
@@ -238,8 +239,12 @@ export function App() {
           setOrders([]);
         });
       }}
-      onUpdateOrderStatus={async (orderId, status) => {
-        const updated = await updateSellerOrderStatus(orderId, status);
+      onUpdateOrderStatus={async (
+        orderId: string,
+        status: string,
+        input?: SellerOrderStatusUpdateInput,
+      ) => {
+        const updated = await updateSellerOrderStatus(orderId, status, input);
         await loadSellerData();
         return updated;
       }}

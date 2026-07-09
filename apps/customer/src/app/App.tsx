@@ -14,10 +14,8 @@ import {
   logoutCustomer,
 } from "../shared/api/auth";
 import { isCustomerApiEnabled } from "../shared/api/client";
-import {
-  getCurrentCustomerPathname,
-  pushCustomerPath,
-} from "../shared/lib/customerNavigation";
+import { registerExistingCustomerPushTarget } from "../shared/api/pushNotifications";
+import { getCurrentCustomerPathname, pushCustomerPath } from "../shared/lib/customerNavigation";
 import { useCustomerPathname } from "../shared/lib/useCustomerPathname";
 import { BottomTabbar } from "../widgets/bottom-tabbar";
 import { CustomerAppShell } from "./ui/CustomerAppShell";
@@ -224,6 +222,14 @@ export function App() {
     };
   }, [activePageId, isAuthChecking, isAuthenticated]);
 
+  useEffect(() => {
+    if (isAuthChecking || !isAuthenticated) {
+      return;
+    }
+
+    void registerExistingCustomerPushTarget().catch(() => undefined);
+  }, [isAuthChecking, isAuthenticated]);
+
   const handleTabChange = (tab: NavigationTab) => {
     if (tab.id === "map" && !isBoothFeatureOpen()) {
       showUnsupportedNotice();
@@ -287,7 +293,9 @@ export function App() {
             {activePageId === "home" ? <CustomerHomePage /> : null}
             {activePageId === "pay" ? <CustomerPayPage /> : null}
             {activePageId === "map" ? <CustomerMapPage /> : null}
-            {activePageId === "points" ? <CustomerPointsPage activeTabId={activePointTabId} /> : null}
+            {activePageId === "points" ? (
+              <CustomerPointsPage activeTabId={activePointTabId} />
+            ) : null}
             {activePageId === "all" ? <CustomerAllPage /> : null}
             {activePageId === "history" ? <CustomerHistoryPage /> : null}
             {activePageId !== "home" &&

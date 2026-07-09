@@ -3542,6 +3542,31 @@ body {
 .sales-sort-button svg {
   width: 14px;
 }
+.sales-notification-message {
+  display: grid;
+  gap: 7px;
+  padding: 14px 0;
+}
+.sales-notification-message span {
+  color: #6b7684;
+  font-size: 11px;
+  font-weight: 700;
+}
+.sales-notification-message input {
+  min-height: 42px;
+  width: 100%;
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
+  background: #fff;
+  color: #333d4b;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.sales-notification-message input:focus {
+  border-color: #3182f6;
+  outline: 3px solid rgb(49 130 246 / 0.14);
+}
 .sales-order-table article {
   min-height: 80px;
 }

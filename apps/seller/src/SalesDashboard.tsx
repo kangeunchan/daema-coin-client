@@ -46,6 +46,7 @@ import { getBarcodeScanBox } from "./payScanner";
 const payScannerElementId = "seller-pay-camera-reader";
 const paymentStepLabels = ["상품", "스캔", "승인"] as const;
 const payQrPrefix = "DAEMA-PAY:";
+const defaultOrderCompletionNotificationMessage = "주문하신 상품 픽업이 완료되었습니다.";
 
 const productCategoryOptions = [
   { label: "음식", value: "food" },
@@ -93,7 +94,13 @@ type SellerSalesDashboardProps = {
     | undefined;
   onLookupPayBarcode?: ((code: string) => Promise<SellerPayBarcode>) | undefined;
   onLogout?: (() => void) | undefined;
-  onUpdateOrderStatus?: ((orderId: string, status: string) => Promise<SellerOrder>) | undefined;
+  onUpdateOrderStatus?:
+    | ((
+        orderId: string,
+        status: string,
+        input?: { notificationBody?: string; notificationTitle?: string },
+      ) => Promise<SellerOrder>)
+    | undefined;
   onUpdateProduct?:
     | ((
         productId: string,
@@ -354,6 +361,9 @@ export function SellerSalesDashboard({
   const [paymentView, setPaymentView] = useState<PaymentView>("all");
   const [orderView, setOrderView] = useState<OrderView>("pending");
   const [orderSort, setOrderSort] = useState<OrderSort>("oldest");
+  const [completionNotificationMessage, setCompletionNotificationMessage] = useState(
+    defaultOrderCompletionNotificationMessage,
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [newProduct, setNewProduct] = useState({
     category: "food",
@@ -531,6 +541,21 @@ export function SellerSalesDashboard({
     return matchesView && matchesQuery;
   });
   const sortedVisibleOrders = orderSort === "oldest" ? visibleOrders : [...visibleOrders].reverse();
+
+  const completeOrder = useCallback(
+    async (orderId: string) => {
+      if (onUpdateOrderStatus) {
+        await onUpdateOrderStatus(orderId, "completed", {
+          notificationBody:
+            completionNotificationMessage.trim() || defaultOrderCompletionNotificationMessage,
+          notificationTitle: "주문 픽업 완료",
+        });
+      }
+      setCompletedOrderIds((ids) => [...ids, orderId]);
+      setLastCompletedOrderId(orderId);
+    },
+    [completionNotificationMessage, onUpdateOrderStatus],
+  );
   useEffect(() => {
     const handleAppShortcut = (event: KeyboardEvent) => {
       if (isPaymentOnlyMode) return;
@@ -896,11 +921,7 @@ export function SellerSalesDashboard({
                       <button
                         onClick={() => {
                           void (async () => {
-                            if (onUpdateOrderStatus) {
-                              await onUpdateOrderStatus(order.id, "completed");
-                            }
-                            setCompletedOrderIds((ids) => [...ids, order.id]);
-                            setLastCompletedOrderId(order.id);
+                            await completeOrder(order.id);
                           })();
                         }}
                         type="button"
@@ -1077,6 +1098,15 @@ export function SellerSalesDashboard({
               </button>
             </div>
 
+            <label className="sales-notification-message">
+              <span>고객 알림 문구</span>
+              <input
+                maxLength={180}
+                onChange={(event) => setCompletionNotificationMessage(event.currentTarget.value)}
+                value={completionNotificationMessage}
+              />
+            </label>
+
             <div className="sales-kds-board">
               {sortedVisibleOrders.map((order) => {
                 const completed = order.completed || completedOrderIds.includes(order.id);
@@ -1133,11 +1163,7 @@ export function SellerSalesDashboard({
                         <button
                           onClick={() => {
                             void (async () => {
-                              if (onUpdateOrderStatus) {
-                                await onUpdateOrderStatus(order.id, "completed");
-                              }
-                              setCompletedOrderIds((ids) => [...ids, order.id]);
-                              setLastCompletedOrderId(order.id);
+                              await completeOrder(order.id);
                             })();
                           }}
                           type="button"

@@ -7,6 +7,7 @@ import {
 } from "@heroicons/react/24/solid";
 import { IconButton } from "@daema/ui/icon-button";
 
+import { enableCustomerPushNotifications } from "../../shared/api/pushNotifications";
 import { pushCustomerPath } from "../../shared/lib/customerNavigation";
 
 type AppHeaderProps = {
@@ -52,7 +53,13 @@ export function HeaderActions({ action = "notifications" }: Pick<AppHeaderProps,
       <HeaderActionButton
         icon={ActionIcon}
         label={action === "cart" ? "Cart" : "Notifications"}
-        onClick={action === "cart" ? () => pushCustomerPath("/booth/cart") : undefined}
+        onClick={
+          action === "cart"
+            ? () => pushCustomerPath("/booth/cart")
+            : () => {
+                void enableCustomerPushNotifications().catch(() => undefined);
+              }
+        }
       />
       {action === "cart" ? (
         <HeaderActionButton

@@ -87,6 +87,11 @@ export type SellerOrder = Record<string, unknown> & {
   updatedAt?: string;
 };
 
+export type SellerOrderStatusUpdateInput = {
+  notificationBody?: string;
+  notificationTitle?: string;
+};
+
 export type SellerSalesReport = {
   boothId?: string;
   paymentCount?: number;
@@ -207,7 +212,9 @@ export async function fetchSellerSalesReport(boothId: string) {
 }
 
 export async function fetchSellerProducts(boothId: string) {
-  return sellerApiRequest<SellerProduct[]>(`/seller/booths/${encodeURIComponent(boothId)}/products`);
+  return sellerApiRequest<SellerProduct[]>(
+    `/seller/booths/${encodeURIComponent(boothId)}/products`,
+  );
 }
 
 export async function fetchSellerOrders(boothId: string) {
@@ -275,9 +282,13 @@ export async function deleteSellerProduct(productId: string) {
   );
 }
 
-export async function updateSellerOrderStatus(orderId: string, status: string) {
+export async function updateSellerOrderStatus(
+  orderId: string,
+  status: string,
+  input: SellerOrderStatusUpdateInput = {},
+) {
   return sellerApiRequest<SellerOrder>(`/seller/orders/${encodeURIComponent(orderId)}/status`, {
-    body: { status },
+    body: { ...input, status },
     method: "PATCH",
   });
 }
