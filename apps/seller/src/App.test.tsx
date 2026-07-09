@@ -182,7 +182,7 @@ test("advances the mobile payment route only from the next step buttons", async 
   });
 
   fireEvent.change(view.getByRole("textbox", { name: "바코드 번호" }), {
-    target: { value: "DAEMA-PAY:CUST-001" },
+    target: { value: "DAEMA-PAY:DMC:12480:CUST-001" },
   });
   fireEvent.click(view.getByRole("button", { name: "바코드 조회" }));
 

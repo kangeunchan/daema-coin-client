@@ -316,17 +316,17 @@ function formatPaymentTime(value: string | undefined) {
 }
 
 function normalizePayBarcodeInput(value: string) {
-  return value
-    .trim()
-    .replace(/^DAEMA-PAY:/i, "")
-    .replace(/[^a-zA-Z0-9_-]/g, "");
+  const trimmed = value.trim().replace(/^DAEMA-PAY:/i, "");
+  const normalized = trimmed.includes(":") ? trimmed.split(":").at(-1)! : trimmed;
+
+  return normalized.replace(/[^a-zA-Z0-9_-]/g, "");
 }
 
 function formatBarcodeOwner(barcode: SellerPayBarcode | undefined) {
   if (!barcode) {
     return "바코드를 조회하세요";
   }
-  return barcode.customerId ?? barcode.userId ?? "고객";
+  return barcode.displayName ?? barcode.name ?? barcode.studentNo ?? barcode.customerId ?? barcode.userId ?? "고객";
 }
 
 function sellerDashboardErrorMessage(error: unknown) {

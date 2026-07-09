@@ -55,9 +55,13 @@ export type SellerPayment = Record<string, unknown> & {
 export type SellerPayBarcode = Record<string, unknown> & {
   code?: string;
   customerId?: string;
+  displayName?: string;
   expiresAt?: string;
   id?: string;
+  lookupType?: string;
+  name?: string;
   status?: string;
+  studentNo?: string;
   userId?: string;
 };
 
