@@ -11,12 +11,14 @@ type CustomerLoginPageProps = {
   initialStep?: "github" | "profile";
   onGithubAuthenticated: () => Promise<GithubAuthenticationResult>;
   onLogin: (profile: { name: string; studentNo: string }) => Promise<void>;
+  onRestartGithubAuthentication: () => Promise<void>;
 };
 
 export function CustomerLoginPage({
   initialStep = "github",
   onGithubAuthenticated,
   onLogin,
+  onRestartGithubAuthentication,
 }: CustomerLoginPageProps) {
   const [step, setStep] = useState<"github" | "profile">(initialStep);
   const [studentId, setStudentId] = useState("");
@@ -133,6 +135,28 @@ export function CustomerLoginPage({
             <CheckCircleIcon aria-hidden="true" />
             <span>{isProfileLoading ? "저장 중" : "학생 정보 확인하기"}</span>
             <ArrowRightIcon aria-hidden="true" />
+          </button>
+          <button
+            className="customer-login-secondary"
+            disabled={isProfileLoading}
+            onClick={() => {
+              setIsProfileLoading(true);
+              setErrorMessage(null);
+
+              void onRestartGithubAuthentication()
+                .then(() => {
+                  setStep("github");
+                })
+                .catch(() => {
+                  setErrorMessage("GitHub 계정을 다시 선택하지 못했어요.");
+                })
+                .finally(() => {
+                  setIsProfileLoading(false);
+                });
+            }}
+            type="button"
+          >
+            GitHub 계정 다시 선택
           </button>
           {errorMessage ? <p className="customer-login-error">{errorMessage}</p> : null}
         </form>

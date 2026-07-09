@@ -336,6 +336,21 @@ button {
   opacity: 0.42;
 }
 
+.customer-login-secondary {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.customer-login-secondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .customer-login-github svg {
   width: 20px;
   height: 20px;

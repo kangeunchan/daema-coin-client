@@ -11,6 +11,7 @@ import {
   hasStoredCustomerSession,
   isGithubLoginSuccessRedirect,
   loginTeacher,
+  logoutCustomer,
 } from "../shared/api/auth";
 import { isCustomerApiEnabled } from "../shared/api/client";
 import {
@@ -274,6 +275,11 @@ export function App() {
             onLogin={async (profile) => {
               await completeStudentProfile(profile);
               setIsAuthenticated(true);
+            }}
+            onRestartGithubAuthentication={async () => {
+              await logoutCustomer();
+              setIsAuthenticated(false);
+              setLoginStep("github");
             }}
           />
         ) : (

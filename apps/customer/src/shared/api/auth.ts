@@ -130,6 +130,17 @@ export async function completeGithubAuthentication(): Promise<GithubAuthenticati
   });
 }
 
+export async function logoutCustomer() {
+  if (!isCustomerApiEnabled()) {
+    window.localStorage.removeItem(customerAuthStorageKey);
+    return;
+  }
+
+  await customerApiRequest<void>("/auth/logout", {
+    method: "POST",
+  });
+}
+
 export async function loginTeacher(loginId: string, password: string) {
   if (!isCustomerApiEnabled()) {
     window.localStorage.setItem(

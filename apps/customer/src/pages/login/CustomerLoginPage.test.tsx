@@ -22,6 +22,7 @@ test("shows a duplicate student number error", async () => {
       initialStep="profile"
       onGithubAuthenticated={vi.fn()}
       onLogin={onLogin}
+      onRestartGithubAuthentication={vi.fn()}
     />,
   );
 
