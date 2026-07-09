@@ -38,12 +38,14 @@ function formatPayCodeDisplay(value: string) {
     .trim();
 }
 
-function PayBarcode({ displayValue, value }: { displayValue: string; value: string }) {
+function PayQr({ displayValue, value }: { displayValue: string; value: string }) {
   return (
     <div aria-label="대마페이 QR" className="customer-pay-qr" data-scan-value={value} role="img">
-      <div className="customer-pay-barcode__content">
-        <QRCodeSVG bgColor="#ffffff" fgColor="#111827" level="M" marginSize={3} value={value} />
-        <span className="customer-pay-barcode__number">{displayValue}</span>
+      <div className="customer-pay-qr__content">
+        <div className="customer-pay-qr__frame">
+          <QRCodeSVG bgColor="#ffffff" fgColor="#111827" level="M" marginSize={3} value={value} />
+        </div>
+        <span className="customer-pay-qr__number">{displayValue}</span>
       </div>
     </div>
   );
@@ -52,7 +54,7 @@ function PayBarcode({ displayValue, value }: { displayValue: string; value: stri
 export function CustomerPayPage() {
   const isApiMode = isCustomerApiEnabled();
   const [payFocusState, setPayFocusState] = useState<"idle" | "open" | "closing">("idle");
-  const [payBarcode, setPayBarcode] = useState({
+  const [payQrCode, setPayQrCode] = useState({
     displayValue: payCodeDisplayValue,
     value: payCodeValue,
   });
@@ -100,20 +102,20 @@ export function CustomerPayPage() {
     };
   }, []);
 
-  const refreshPayBarcode = () => {
+  const refreshPayQrCode = () => {
     if (!isCustomerApiEnabled()) {
       return;
     }
 
     void createCustomerPayBarcode()
-      .then((barcode) => {
-        if (!barcode.code) {
+      .then((qrCode) => {
+        if (!qrCode.code) {
           return;
         }
 
-        setPayBarcode({
-          displayValue: formatPayCodeDisplay(barcode.code),
-          value: `DAEMA-PAY:${barcode.code}`,
+        setPayQrCode({
+          displayValue: formatPayCodeDisplay(qrCode.code),
+          value: `DAEMA-PAY:${qrCode.code}`,
         });
       })
       .catch(() => undefined);
@@ -122,7 +124,7 @@ export function CustomerPayPage() {
   const openPayFocus = () => {
     if (payFocusState === "idle") {
       setPayFocusState("open");
-      refreshPayBarcode();
+      refreshPayQrCode();
     }
   };
 
@@ -184,7 +186,7 @@ export function CustomerPayPage() {
               <span className="customer-pay-balance">대마코인 {payBalanceLabel}</span>
               {isPayActive ? (
                 <IconButton
-                  aria-label="바코드 화면 닫기"
+                  aria-label="QR 화면 닫기"
                   className="customer-pay-focus__close"
                   intent="ghost"
                   onClick={(event) => {
@@ -200,7 +202,7 @@ export function CustomerPayPage() {
           </div>
 
           <div className="customer-pay-code">
-            <PayBarcode displayValue={payBarcode.displayValue} value={payBarcode.value} />
+            <PayQr displayValue={payQrCode.displayValue} value={payQrCode.value} />
           </div>
         </section>
       </Surface>

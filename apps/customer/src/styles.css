@@ -3130,63 +3130,111 @@ button {
 .customer-pay-qr {
   position: relative;
   display: grid;
-  width: min(100%, 230px);
-  min-height: 250px;
+  width: min(100%, 244px);
+  min-height: 276px;
   min-width: 0;
   align-items: center;
   align-content: center;
   justify-items: center;
-  padding: 14px;
+  padding: 12px;
   overflow: hidden;
-  border-radius: 8px;
+  border: 1px solid rgb(226 232 240 / 0.92);
+  border-radius: 22px;
   background: #fff;
+  box-shadow: 0 18px 42px rgb(15 23 42 / 0.08);
   transform-origin: center;
   will-change: opacity, transform;
 }
 
 .customer-pay-panel--focused .customer-pay-qr {
-  width: min(calc(100vw - 48px), 360px);
-  min-height: min(calc(100vw - 48px), 360px);
+  width: min(calc(100vw - 48px), 374px);
+  min-height: min(calc(100vw - 24px), 420px);
   padding: 18px;
+  border-radius: 28px;
+  box-shadow: 0 24px 72px rgb(15 23 42 / 0.12);
   place-items: center;
-  animation: customer-pay-barcode-in 540ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: customer-pay-qr-in 540ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .customer-pay-panel--closing .customer-pay-qr {
-  animation: customer-pay-barcode-out 360ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: customer-pay-qr-out 360ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
-.customer-pay-barcode__content {
+.customer-pay-qr__content {
   display: grid;
   width: 100%;
   min-width: 0;
   justify-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
-.customer-pay-panel--focused .customer-pay-barcode__content {
+.customer-pay-panel--focused .customer-pay-qr__content {
   width: 100%;
+  gap: 14px;
 }
 
-.customer-pay-barcode__content svg {
+.customer-pay-qr__frame {
+  position: relative;
+  display: grid;
+  width: min(100%, 214px);
+  aspect-ratio: 1;
+  place-items: center;
+  padding: 12px;
+  border: 1px solid #dce6f2;
+  border-radius: 18px;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(135deg, #3182f6, #9cc7ff) border-box;
+}
+
+.customer-pay-qr__frame::before,
+.customer-pay-qr__frame::after {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-color: #3182f6;
+  content: "";
+  pointer-events: none;
+}
+
+.customer-pay-qr__frame::before {
+  top: 8px;
+  left: 8px;
+  border-top: 3px solid;
+  border-left: 3px solid;
+  border-top-left-radius: 10px;
+}
+
+.customer-pay-qr__frame::after {
+  right: 8px;
+  bottom: 8px;
+  border-right: 3px solid;
+  border-bottom: 3px solid;
+  border-bottom-right-radius: 10px;
+}
+
+.customer-pay-panel--focused .customer-pay-qr__frame {
+  width: min(100%, 326px);
+  padding: 14px;
+  border-radius: 24px;
+}
+
+.customer-pay-qr__frame svg {
   display: block;
   width: 100%;
-  max-width: 220px;
   height: auto;
   aspect-ratio: 1;
 }
 
-.customer-pay-panel--focused .customer-pay-barcode__content svg {
-  max-width: 324px;
-}
-
-.customer-pay-barcode__number {
+.customer-pay-qr__number {
   display: block;
   overflow: hidden;
+  max-width: 100%;
   color: var(--daema-color-foreground-muted);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 740;
   line-height: 1;
+  letter-spacing: 0.08em;
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3210,7 +3258,7 @@ button {
   animation: customer-pay-focus-copy-out 160ms ease both;
 }
 
-.customer-pay-panel--focused .customer-pay-barcode__number {
+.customer-pay-panel--focused .customer-pay-qr__number {
   font-size: 15px;
 }
 
@@ -3220,13 +3268,13 @@ button {
   }
 
   .customer-pay-panel--focused .customer-pay-qr {
-    width: min(calc(100dvh - 96px), 320px);
-    min-height: min(calc(100dvh - 96px), 320px);
+    width: min(calc(100dvh - 96px), 348px);
+    min-height: min(calc(100dvh - 72px), 380px);
     padding: 16px;
   }
 
-  .customer-pay-panel--focused .customer-pay-barcode__content svg {
-    max-width: 288px;
+  .customer-pay-panel--focused .customer-pay-qr__frame {
+    width: min(100%, 286px);
   }
 }
 
@@ -3376,7 +3424,7 @@ button {
   }
 }
 
-@keyframes customer-pay-barcode-in {
+@keyframes customer-pay-qr-in {
   0% {
     opacity: 0.96;
     transform: scale(0.76);
@@ -3403,7 +3451,7 @@ button {
   }
 }
 
-@keyframes customer-pay-barcode-out {
+@keyframes customer-pay-qr-out {
   0% {
     opacity: 1;
     transform: scale(1);

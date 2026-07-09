@@ -16,7 +16,7 @@ import { navigateCustomerPathFromClick } from "../../shared/lib/customerNavigati
 
 const appFeatureItems = [
   { href: "/", icon: HomeIcon, label: "홈 대시보드", tone: "#64748b" },
-  { href: "/pay", icon: CreditCardIcon, label: "바코드 결제", tone: "#0f766e" },
+  { href: "/pay", icon: CreditCardIcon, label: "QR 결제", tone: "#0f766e" },
   { href: "/history", icon: WalletIcon, label: "내역", tone: "#94a3b8" },
   { href: "/points", icon: CircleStackIcon, label: "매일 커밋 모으기", tone: "#22c55e" },
   { href: "/points/worldcup", icon: TrophyIcon, label: "월드컵 승부예측", tone: "#2563eb" },

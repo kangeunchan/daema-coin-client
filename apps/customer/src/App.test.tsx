@@ -58,7 +58,7 @@ test("moves between customer tab pages", async () => {
   expect(window.location.pathname).toBe("/all");
   expect(await screen.findByRole("link", { current: "page", name: "전체" })).toBeVisible();
   expect(await screen.findByText("사용 중인 기능")).toBeVisible();
-  expect(screen.getByRole("link", { name: "바코드 결제" })).toBeVisible();
+  expect(screen.getByRole("link", { name: "QR 결제" })).toBeVisible();
 
   fireEvent.click(screen.getByRole("link", { name: "월드컵 승부예측" }));
 
@@ -71,10 +71,10 @@ test("renders the pay QR with the prefixed scannable payload", async () => {
   await login();
   fireEvent.click(screen.getByRole("link", { name: "페이" }));
 
-  const barcode = await screen.findByRole("img", { name: "대마페이 QR" });
+  const qrCode = await screen.findByRole("img", { name: "대마페이 QR" });
 
-  expect(barcode).toHaveAttribute("data-scan-value", "DAEMA-PAY:USER-DEMO-0001");
-  expect(barcode.querySelector("svg")).toBeInTheDocument();
+  expect(qrCode).toHaveAttribute("data-scan-value", "DAEMA-PAY:USER-DEMO-0001");
+  expect(qrCode.querySelector("svg")).toBeInTheDocument();
 });
 
 test("logs in through the teacher route", async () => {
