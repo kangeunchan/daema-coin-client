@@ -78,6 +78,8 @@ export type CustomerBoothOrderDto = Record<string, unknown> & {
 };
 
 export type CustomerCartItemDto = Record<string, unknown> & {
+  boothId?: string;
+  boothName?: string;
   id?: string;
   cartItemId?: string;
   imageSrc?: string;
@@ -122,6 +124,15 @@ export async function createCustomerCartItem(input: { productId: string; quantit
     body: input,
     method: "POST",
   });
+}
+
+export async function deleteCustomerCartItem(cartItemId: string) {
+  return customerApiRequest<{ cartItemId?: string; deleted?: boolean }>(
+    `/customer/cart/items/${encodeURIComponent(cartItemId)}`,
+    {
+      method: "DELETE",
+    },
+  );
 }
 
 export async function fetchCustomerFavorites(targetId?: string) {

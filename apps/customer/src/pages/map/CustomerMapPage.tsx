@@ -7,6 +7,7 @@ import {
   ReceiptPercentIcon,
   ShareIcon,
   ShoppingBagIcon,
+  TrashIcon,
 } from "@heroicons/react/24/solid";
 import { IconButton } from "@daema/ui/icon-button";
 import { Surface } from "@daema/ui/surface";
@@ -17,6 +18,7 @@ import {
   createCustomerBoothProductView,
   createCustomerFavorite,
   deleteCustomerFavorite,
+  deleteCustomerCartItem,
   fetchCustomerBoothHome,
   fetchCustomerBoothOrders,
   fetchCustomerCart,
@@ -404,8 +406,12 @@ function BoothCartPage({ onBack }: BoothCartPageProps) {
   const [items, setItems] = useState<readonly CustomerCartItemDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPayingId, setIsPayingId] = useState("");
+  const [isOrderingAll, setIsOrderingAll] = useState(false);
+  const [deletingItemId, setDeletingItemId] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const itemCount = items.reduce((total, item) => total + cartItemQuantity(item), 0);
+  const totalDmc = items.reduce((total, item) => total + cartItemTotalDmc(item), 0);
 
   useEffect(() => {
     let isCancelled = false;
@@ -444,6 +450,10 @@ function BoothCartPage({ onBack }: BoothCartPageProps) {
       setNotice("");
       try {
         await createCustomerBoothOrder({ productId, quantity: cartItemQuantity(item) });
+        await deleteCustomerCartItem(cartItemID(item));
+        setItems((currentItems) =>
+          currentItems.filter((currentItem) => cartItemID(currentItem) !== cartItemID(item)),
+        );
         setNotice("주문이 접수됐습니다.");
       } catch (payError) {
         setError(payError instanceof Error ? payError.message : "주문을 완료하지 못했습니다.");
@@ -453,10 +463,80 @@ function BoothCartPage({ onBack }: BoothCartPageProps) {
     })();
   };
 
+  const removeCartItem = (item: CustomerCartItemDto) => {
+    void (async () => {
+      const itemId = cartItemID(item);
+      if (deletingItemId || isOrderingAll) {
+        return;
+      }
+
+      setDeletingItemId(itemId);
+      setError("");
+      setNotice("");
+      try {
+        await deleteCustomerCartItem(itemId);
+        setItems((currentItems) =>
+          currentItems.filter((currentItem) => cartItemID(currentItem) !== itemId),
+        );
+        setNotice("장바구니에서 삭제했습니다.");
+      } catch (deleteError) {
+        setError(deleteError instanceof Error ? deleteError.message : "상품을 삭제하지 못했습니다.");
+      } finally {
+        setDeletingItemId("");
+      }
+    })();
+  };
+
+  const payAllCartItems = () => {
+    void (async () => {
+      const orderableItems = items.filter((item) => item.productId);
+      if (orderableItems.length === 0 || isOrderingAll) {
+        return;
+      }
+
+      setIsOrderingAll(true);
+      setError("");
+      setNotice("");
+      const orderedItemIds: string[] = [];
+      try {
+        for (const item of orderableItems) {
+          const productId = item.productId;
+          if (!productId) {
+            continue;
+          }
+          await createCustomerBoothOrder({ productId, quantity: cartItemQuantity(item) });
+          await deleteCustomerCartItem(cartItemID(item));
+          orderedItemIds.push(cartItemID(item));
+        }
+        setItems((currentItems) =>
+          currentItems.filter((item) => !orderedItemIds.includes(cartItemID(item))),
+        );
+        setNotice(`${orderedItemIds.length}개 상품 주문이 접수됐습니다.`);
+      } catch (orderError) {
+        setItems((currentItems) =>
+          currentItems.filter((item) => !orderedItemIds.includes(cartItemID(item))),
+        );
+        setError(orderError instanceof Error ? orderError.message : "전체 주문을 완료하지 못했습니다.");
+      } finally {
+        setIsOrderingAll(false);
+      }
+    })();
+  };
+
   return (
     <div className="customer-booth-page customer-booth-list-page">
       <BoothSubpageHeader onBack={onBack} title="장바구니" />
-      <main className="customer-booth-list-content">
+      <main className="customer-booth-list-content customer-booth-cart-content">
+        <section className="customer-booth-cart-summary" aria-label="장바구니 요약">
+          <div>
+            <span>담긴 상품</span>
+            <strong>{itemCount}개</strong>
+          </div>
+          <div>
+            <span>주문 합계</span>
+            <strong>{formatDmc(totalDmc)}</strong>
+          </div>
+        </section>
         {isLoading ? <p className="customer-booth-empty">장바구니를 불러오는 중입니다.</p> : null}
         {error ? <p className="customer-booth-list-message" data-error="true">{error}</p> : null}
         {notice ? <p className="customer-booth-list-message">{notice}</p> : null}
@@ -467,17 +547,32 @@ function BoothCartPage({ onBack }: BoothCartPageProps) {
           {items.map((item) => {
             const itemId = cartItemID(item);
             return (
-              <article className="customer-booth-list-item" key={itemId}>
+              <article className="customer-booth-cart-item" key={itemId}>
                 <img alt="" aria-hidden="true" src={cartItemImage(item)} />
-                <div>
-                  <span>부스 상품</span>
-                  <strong>{cartItemTitle(item)}</strong>
-                  <small>{cartItemQuantity(item)}개</small>
+                <div className="customer-booth-cart-item__body">
+                  <div className="customer-booth-cart-item__title">
+                    <span>{String(item.boothName ?? item.boothId ?? "부스 상품")}</span>
+                    <strong>{cartItemTitle(item)}</strong>
+                  </div>
+                  <div className="customer-booth-cart-item__meta">
+                    <span>{formatDmc(cartItemUnitDmc(item))}</span>
+                    <b>{cartItemQuantity(item)}개</b>
+                  </div>
                 </div>
-                <div className="customer-booth-list-item__side">
-                  <b>{formatDmc(cartItemTotalDmc(item))}</b>
+                <div className="customer-booth-cart-item__actions">
+                  <strong>{formatDmc(cartItemTotalDmc(item))}</strong>
                   <button
-                    disabled={isPayingId === itemId}
+                    aria-label={`${cartItemTitle(item)} 삭제`}
+                    className="customer-booth-cart-item__remove"
+                    disabled={deletingItemId === itemId || isOrderingAll}
+                    onClick={() => removeCartItem(item)}
+                    type="button"
+                  >
+                    <TrashIcon aria-hidden="true" />
+                  </button>
+                  <button
+                    className="customer-booth-cart-item__order"
+                    disabled={isPayingId === itemId || isOrderingAll}
                     onClick={() => payCartItem(item)}
                     type="button"
                   >
@@ -489,6 +584,15 @@ function BoothCartPage({ onBack }: BoothCartPageProps) {
           })}
         </div>
       </main>
+      <footer className="customer-booth-cart-checkout">
+        <div>
+          <span>총 주문금액</span>
+          <strong>{formatDmc(totalDmc)}</strong>
+        </div>
+        <button disabled={items.length === 0 || isOrderingAll} onClick={payAllCartItems} type="button">
+          {isOrderingAll ? "전체 주문 중" : "전체 주문"}
+        </button>
+      </footer>
     </div>
   );
 }
