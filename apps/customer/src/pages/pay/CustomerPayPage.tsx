@@ -41,15 +41,17 @@ function formatPayCodeDisplay(value: string) {
 function PayBarcode({ displayValue, value }: { displayValue: string; value: string }) {
   return (
     <div aria-label="대마페이 바코드" className="customer-pay-barcode" role="img">
-      <Barcode
-        background="#ffffff"
-        displayValue={false}
-        height={96}
-        margin={0}
-        value={value}
-        width={2.4}
-      />
-      <span className="customer-pay-barcode__number">{displayValue}</span>
+      <div className="customer-pay-barcode__content">
+        <Barcode
+          background="#ffffff"
+          displayValue={false}
+          height={96}
+          margin={0}
+          value={value}
+          width={2.4}
+        />
+        <span className="customer-pay-barcode__number">{displayValue}</span>
+      </div>
     </div>
   );
 }
