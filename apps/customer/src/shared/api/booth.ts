@@ -31,10 +31,12 @@ export type CustomerBoothDto = Record<string, unknown> & {
 
 export type CustomerBoothProductDto = Record<string, unknown> & {
   boothId?: string;
+  boothName?: string;
   categories?: string[];
   category?: string;
   categoryId?: string;
   description?: string;
+  displayName?: string;
   id?: string;
   imageBackground?: string;
   imageSrc?: string;

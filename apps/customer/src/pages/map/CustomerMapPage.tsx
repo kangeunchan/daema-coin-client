@@ -168,10 +168,10 @@ export function CustomerMapPage() {
           return;
         }
 
-        const nextCategories = mapBoothCategories(home.categories);
-        const nextBoothTabs = mapBoothTabs(home.booths);
         const nextHeroSlides = mapBoothHeroSlides(home.banners);
         const nextProducts = mapBoothProducts(home.products, home.booths);
+        const nextCategories = mapBoothCategories(home.categories);
+        const nextBoothTabs = mapBoothTabs(home.booths, nextProducts);
 
         setApiCategories(nextCategories);
         setApiBoothTabs(nextBoothTabs);
@@ -895,18 +895,36 @@ function boothDisplayName(item: CustomerBoothDto) {
   return item.displayName ?? item.title ?? item.name ?? item.id ?? "이름 없는 부스";
 }
 
-function mapBoothTabs(items: readonly CustomerBoothDto[] | undefined) {
-  const tabs = (items ?? []).flatMap((item) => {
+function mapBoothTabs(
+  items: readonly CustomerBoothDto[] | undefined,
+  products: readonly BoothProduct[],
+) {
+  const tabsById = new Map<string, BoothTab>();
+
+  for (const item of items ?? []) {
     const id = item.id;
     if (!id) {
-      return [];
+      continue;
     }
 
     const label = boothDisplayName(item);
-    return [{ id, label, title: `${label} 상품` }];
-  });
+    tabsById.set(id, { id, label, title: `${label} 상품` });
+  }
 
-  return [{ id: "all", label: "전체", title: "전체 부스 상품" }, ...tabs] satisfies readonly BoothTab[];
+  for (const product of products) {
+    const id = product.boothId;
+    if (!id || tabsById.has(id)) {
+      continue;
+    }
+
+    const label = product.boothName ?? id;
+    tabsById.set(id, { id, label, title: `${label} 상품` });
+  }
+
+  return [
+    { id: "all", label: "전체", title: "전체 부스 상품" },
+    ...Array.from(tabsById.values()),
+  ] satisfies readonly BoothTab[];
 }
 
 function mapBoothHeroSlides(items: readonly CustomerBoothBannerDto[] | undefined) {
@@ -1105,7 +1123,7 @@ function mapBoothProducts(
       };
       if (item.boothId) {
         product.boothId = item.boothId;
-        const boothName = boothNames.get(item.boothId);
+        const boothName = item.boothName ?? item.displayName ?? boothNames.get(item.boothId);
         if (boothName) {
           product.boothName = boothName;
         }
